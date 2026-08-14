@@ -54,9 +54,9 @@
     let currentIndex = 0;
     let timer = null;
 
-    // --- CONTADOR DE USUÁRIOS ONLINE ---
+    // --- CONTADOR DE USUÁRIOS ONLINE (CORRIGIDO) ---
     const myPresenceRef = database.ref('online_users').push();
-    myPresenceRef.setValue(true);
+    myPresenceRef.set(true); // <-- Correção aqui!
     myPresenceRef.onDisconnect().remove(); // Remove ao fechar a aba
 
     // --- CARREGAMENTO E EXIBIÇÃO DE MÍDIAS ---
