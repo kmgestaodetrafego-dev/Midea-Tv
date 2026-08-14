@@ -5,12 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exibição em Tela Cheia</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: sans-serif; }
-    #display-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
-    .media-element { width: 100%; height: 100%; object-fit: contain; border: none; }
-    #no-data { color: #fff; font-size: 1.5rem; text-align: center; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      font-family: sans-serif;
+    }
+    #display-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .media-element {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border: none;
+    }
+    #no-data {
+      color: #fff;
+      font-size: 1.5rem;
+      text-align: center;
+    }
   </style>
+  
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="config.js"></script>
@@ -27,10 +54,12 @@
     let currentIndex = 0;
     let timer = null;
 
+    // --- CONTADOR DE USUÁRIOS ONLINE ---
     const myPresenceRef = database.ref('online_users').push();
     myPresenceRef.set(true);
     myPresenceRef.onDisconnect().remove();
 
+    // --- CARREGAMENTO E EXIBIÇÃO DE MÍDIAS ---
     database.ref('playlist').on('value', (snapshot) => {
       const data = snapshot.val();
       playlist = [];
@@ -60,15 +89,30 @@
       if (item.tipo === 'imagem') {
         container.innerHTML = `<img src="${item.url}" class="media-element" alt="Mídia">`;
       } else if (item.tipo === 'video') {
-        container.innerHTML = `
-          <iframe 
-            src="${item.url}" 
-            class="media-element" 
-            allow="autoplay; encrypted-media; fullscreen" 
-            allowfullscreen>
-          </iframe>`;
+        // Se for do YouTube, abre em iframe
+        if (item.url.includes('youtube.com')) {
+          container.innerHTML = `
+            <iframe 
+              src="${item.url}" 
+              class="media-element" 
+              allow="autoplay; encrypted-media; fullscreen" 
+              allowfullscreen>
+            </iframe>`;
+        } else {
+          // Se for do Google Drive / MP4, abre no player nativo de vídeo
+          container.innerHTML = `
+            <video 
+              src="${item.url}" 
+              class="media-element" 
+              autoplay 
+              muted 
+              playsinline 
+              style="object-fit: contain; width: 100%; height: 100%;">
+            </video>`;
+        }
       }
 
+      // Avança para a próxima mídia após o tempo configurado
       timer = setTimeout(() => {
         currentIndex = (currentIndex + 1) % playlist.length;
         showCurrentMedia();
