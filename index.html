@@ -89,8 +89,8 @@
       if (item.tipo === 'imagem') {
         container.innerHTML = `<img src="${item.url}" class="media-element" alt="Mídia">`;
       } else if (item.tipo === 'video') {
-        // Se for do YouTube, abre em iframe
-        if (item.url.includes('youtube.com')) {
+        // Se for YouTube ou Google Drive, usa iframe
+        if (item.url.includes('youtube.com') || item.url.includes('drive.google.com')) {
           container.innerHTML = `
             <iframe 
               src="${item.url}" 
@@ -99,7 +99,7 @@
               allowfullscreen>
             </iframe>`;
         } else {
-          // Se for do Google Drive / MP4, abre no player nativo de vídeo
+          // Se for Dropbox / MP4 direto, usa o player nativo do navegador
           container.innerHTML = `
             <video 
               src="${item.url}" 
@@ -107,12 +107,13 @@
               autoplay 
               muted 
               playsinline 
+              loop
               style="object-fit: contain; width: 100%; height: 100%;">
             </video>`;
         }
       }
 
-      // Avança para a próxima mídia após o tempo configurado
+      // Troca para o próximo item
       timer = setTimeout(() => {
         currentIndex = (currentIndex + 1) % playlist.length;
         showCurrentMedia();
