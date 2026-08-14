@@ -1,168 +1,26 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel do Administrador</title>
-  <style>
-    * { box-sizing: border-box; font-family: Arial, sans-serif; }
-    body { background-color: #f4f6f9; padding: 20px; margin: 0; }
-    .container { max-width: 800px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    h1, h2 { color: #333; }
-    .status-card { background: #e3f2fd; border-left: 5px solid #2196f3; padding: 15px; margin-bottom: 20px; border-radius: 4px; font-weight: bold; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 5px; font-weight: bold; }
-    input, select, button { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-    button { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
-    button:hover { background-color: #218838; }
-    .media-list { margin-top: 30px; }
-    .media-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px; border: 1px solid #ddd; margin-bottom: 10px; border-radius: 4px; }
-    .btn-delete { background-color: #dc3545; width: auto; padding: 6px 12px; }
-    .btn-delete:hover { background-color: #c82333; }
-    #login-box { max-width: 400px; margin: 100px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-  </style>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="config.js"></script>
-</head>
-<body>
-
-  <div id="login-box">
-    <h2>Login do Administrador</h2>
-    <div class="form-group">
-      <label>Senha de Acesso</label>
-      <input type="password" id="admin-pass" placeholder="Digite a senha (padrão: 1234)">
-    </div>
-    <button onclick="login()">Entrar</button>
-  </div>
-
-  <div class="container" id="admin-content" style="display: none;">
-    <h1>Painel de Controle</h1>
-    <div class="status-card">
-      👥 Usuários Conectados Agora: <span id="online-count">0</span>
-    </div>
-
-    <h2>Adicionar Nova Mídia</h2>
-    <form id="media-form">
-      <div class="form-group">
-        <label>Link da Mídia (Drive, YouTube ou Imagem)</label>
-        <input type="url" id="drive-url" placeholder="Cole o link do Drive, YouTube ou Imagem" required>
-      </div>
-
-      <div class="form-group">
-        <label>Tipo de Mídia</label>
-        <select id="media-type">
-          <option value="imagem">Imagem</option>
-          <option value="video">Vídeo</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Tempo de Exibição (segundos)</label>
-        <input type="number" id="media-time" value="10" min="3" required>
-      </div>
-
-      <button type="submit">Cadastrar Mídia</button>
-    </form>
-
-    <div class="media-list">
-      <h2>Mídias Cadastradas</h2>
-      <div id="list-container">Carregando...</div>
-    </div>
-  </div>
-
-  <script>
-    const ADMIN_PASSWORD = "1234";
-
-    function login() {
-      const pass = document.getElementById('admin-pass').value;
-      if (pass === ADMIN_PASSWORD) {
-        document.getElementById('login-box').style.display = 'none';
-        document.getElementById('admin-content').style.display = 'block';
-        initAdmin();
-      } else {
-        alert("Senha incorreta!");
-      }
+function convertUrl(url, type) {
+  // Trata links do YouTube
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    let videoId = "";
+    if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1].split('?')[0];
+    } else if (url.includes('v=')) {
+      videoId = url.split('v=')[1].split('&')[0];
     }
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`;
+  }
 
-    function convertUrl(url, type) {
-      // Trata links do YouTube
-      if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        let videoId = "";
-        if (url.includes('youtu.be/')) {
-          videoId = url.split('youtu.be/')[1].split('?')[0];
-        } else if (url.includes('v=')) {
-          videoId = url.split('v=')[1].split('&')[0];
-        }
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`;
-      }
-
-      // Trata links do Google Drive
-      const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)|id=([a-zA-Z0-9_-]+)/);
-      if (driveMatch) {
-        const fileId = driveMatch[1] || driveMatch[2];
-        return type === 'video' 
-          ? `https://drive.google.com/file/d/${fileId}/preview`
-          : `https://lh3.googleusercontent.com/d/${fileId}`;
-      }
-
-      return url;
+  // Trata links do Google Drive
+  const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)|id=([a-zA-Z0-9_-]+)/);
+  if (driveMatch) {
+    const fileId = driveMatch[1] || driveMatch[2];
+    if (type === 'video') {
+      // Link direto de streaming do arquivo no Drive
+      return `https://drive.google.com/uc?export=download&id=${fileId}`;
+    } else {
+      return `https://lh3.googleusercontent.com/d/${fileId}`;
     }
+  }
 
-    function initAdmin() {
-      database.ref('online_users').on('value', (snapshot) => {
-        document.getElementById('online-count').innerText = snapshot.numChildren();
-      });
-
-      document.getElementById('media-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const rawUrl = document.getElementById('drive-url').value;
-        const type = document.getElementById('media-type').value;
-        const time = parseInt(document.getElementById('media-time').value);
-
-        const formattedUrl = convertUrl(rawUrl, type);
-
-        database.ref('playlist').push({
-          url: formattedUrl,
-          tipo: type,
-          tempo: time,
-          criadoEm: Date.now()
-        });
-
-        document.getElementById('media-form').reset();
-      });
-
-      database.ref('playlist').on('value', (snapshot) => {
-        const data = snapshot.val();
-        const container = document.getElementById('list-container');
-        container.innerHTML = '';
-
-        if (!data) {
-          container.innerHTML = '<p>Nenhuma mídia cadastrada.</p>';
-          return;
-        }
-
-        Object.keys(data).forEach(key => {
-          const item = data[key];
-          const div = document.createElement('div');
-          div.className = 'media-item';
-          div.innerHTML = `
-            <div>
-              <strong>Tipo:</strong> ${item.tipo.toUpperCase()} | 
-              <strong>Tempo:</strong> ${item.tempo}s
-            </div>
-            <button class="btn-delete" onclick="deleteMedia('${key}')">Excluir</button>
-          `;
-          container.appendChild(div);
-        });
-      });
-    }
-
-    function deleteMedia(key) {
-      if (confirm('Deseja realmente remover esta mídia?')) {
-        database.ref('playlist/' + key).remove();
-      }
-    }
-  </script>
-</body>
-</html>
+  return url;
+}
