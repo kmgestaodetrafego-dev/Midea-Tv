@@ -23,17 +23,22 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      position: relative;
     }
     .media-element {
       width: 100%;
       height: 100%;
       object-fit: contain;
       border: none;
+      position: absolute;
+      top: 0;
+      left: 0;
     }
     #no-data {
       color: #fff;
       font-size: 1.5rem;
       text-align: center;
+      z-index: 10;
     }
   </style>
   
@@ -71,11 +76,13 @@
       }
 
       if (playlist.length > 0) {
-        currentIndex = 0;
+        if (currentIndex >= playlist.length) {
+          currentIndex = 0;
+        }
         showCurrentMedia();
       } else {
-        container.innerHTML = '<div id="no-data">Nenhuma mídia cadastrada no momento.</div>';
         clearTimeout(timer);
+        container.innerHTML = '<div id="no-data">Nenhuma mídia cadastrada no momento.</div>';
       }
     });
 
@@ -86,34 +93,45 @@
       const item = playlist[currentIndex];
       const duration = (item.tempo || 10) * 1000;
 
+      // Limpa o contêiner de forma segura sem quebrar referências do DOM
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+
       if (item.tipo === 'imagem') {
-        container.innerHTML = `<img src="${item.url}" class="media-element" alt="Mídia">`;
+        const img = document.createElement('img');
+        img.src = item.url;
+        img.className = 'media-element';
+        img.alt = 'Mídia';
+        container.appendChild(img);
       } else if (item.tipo === 'video') {
-        // Se for YouTube ou Google Drive, usa iframe
         if (item.url.includes('youtube.com') || item.url.includes('drive.google.com')) {
-          container.innerHTML = `
-            <iframe 
-              src="${item.url}" 
-              class="media-element" 
-              allow="autoplay; encrypted-media; fullscreen" 
-              allowfullscreen>
-            </iframe>`;
+          const iframe = document.createElement('iframe');
+          iframe.src = item.url;
+          iframe.className = 'media-element';
+          iframe.allow = "autoplay; encrypted-media; fullscreen";
+          iframe.allowFullscreen = true;
+          container.appendChild(iframe);
         } else {
-          // Se for Dropbox / MP4 direto, usa o player nativo do navegador
-          container.innerHTML = `
-            <video 
-              src="${item.url}" 
-              class="media-element" 
-              autoplay 
-              muted 
-              playsinline 
-              loop
-              style="object-fit: contain; width: 100%; height: 100%;">
-            </video>`;
+          // Trata como vídeo nativo (Dropbox, MP4 direto)
+          const video = document.createElement('video');
+          video.src = item.url;
+          video.className = 'media-element';
+          video.autoplay = true;
+          video.muted = true; // Muted é obrigatório para Autoplay sem interação
+          video.playsInline = true;
+          video.controls = false;
+          
+          // Tenta dar play programaticamente
+          video.play().catch(err => {
+            console.warn("Autoplay bloqueado pelo navegador:", err);
+          });
+
+          container.appendChild(video);
         }
       }
 
-      // Troca para o próximo item
+      // Agenda a próxima mídia da lista
       timer = setTimeout(() => {
         currentIndex = (currentIndex + 1) % playlist.length;
         showCurrentMedia();
