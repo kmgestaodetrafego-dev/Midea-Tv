@@ -40,7 +40,7 @@
       font-weight: 600;
       margin-bottom: 5px;
     }
-    input[type="text"], input[type="number"], input[type="time"], select {
+    input[type="text"], input[type="password"], input[type="number"], input[type="time"], select {
       width: 100%;
       padding: 10px;
       border: 1px solid #ccc;
@@ -68,6 +68,15 @@
     }
     button:hover {
       background-color: #218838;
+    }
+    .btn-logout {
+      background-color: #6c757d;
+      margin-bottom: 20px;
+      width: auto;
+      float: right;
+    }
+    .btn-logout:hover {
+      background-color: #5a6268;
     }
     table {
       width: 100%;
@@ -100,6 +109,15 @@
     }
     .badge-imagem { background-color: #17a2b8; }
     .badge-video { background-color: #ffc107; color: #000; }
+
+    /* Área de Login */
+    #login-screen {
+      max-width: 400px;
+      margin: 80px auto;
+    }
+    .hidden {
+      display: none !important;
+    }
   </style>
 
   <!-- SDKs do Firebase -->
@@ -109,7 +127,24 @@
 </head>
 <body>
 
-  <div class="container">
+  <!-- Tela de Login -->
+  <div id="login-screen" class="card">
+    <h2 style="text-align: center; margin-bottom: 15px;">🔒 Acesso Restrito</h2>
+    <form id="login-form">
+      <div class="form-group">
+        <label for="admin-password">Senha do Painel:</label>
+        <input type="password" id="admin-password" placeholder="Digite a senha..." required>
+      </div>
+      <button type="submit">Entrar no Painel</button>
+    </form>
+  </div>
+
+  <!-- Conteúdo Principal do Admin (Oculto até Logar) -->
+  <div id="admin-content" class="container hidden">
+    
+    <button class="btn-logout" onclick="logout()">Sair 🔒</button>
+    <div style="clear: both;"></div>
+
     <h1>📺 Gestão da Tela Midea TV</h1>
 
     <!-- Cadastrar Mídia -->
@@ -170,68 +205,109 @@
   </div>
 
   <script>
+    // DEFINA SUA SENHA AQUI
+    const ADMIN_PASSWORD = "1234"; 
+
+    const loginScreen = document.getElementById('login-screen');
+    const adminContent = document.getElementById('admin-content');
+    const loginForm = document.getElementById('login-form');
     const mediaForm = document.getElementById('media-form');
     const playlistTable = document.getElementById('playlist-table');
 
-    // Cadastrar mídia no Firebase
-    mediaForm.addEventListener('submit', (e) => {
+    // Validação de Senha
+    loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
+      const inputPass = document.getElementById('admin-password').value;
 
-      const url = document.getElementById('url').value.trim();
-      const tipo = document.getElementById('tipo').value;
-      const tempo = parseInt(document.getElementById('tempo').value, 10);
-      const horaInicio = document.getElementById('horaInicio').value || null;
-      const horaFim = document.getElementById('horaFim').value || null;
-
-      database.ref('playlist').push({
-        url: url,
-        tipo: tipo,
-        tempo: tempo,
-        horaInicio: horaInicio,
-        horaFim: horaFim,
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-      }).then(() => {
-        alert('Mídia cadastrada com sucesso!');
-        mediaForm.reset();
-        document.getElementById('tempo').value = 10;
-      }).catch((error) => {
-        alert('Erro ao cadastrar: ' + error.message);
-      });
-    });
-
-    // Listar mídias cadastradas em tempo real
-    database.ref('playlist').on('value', (snapshot) => {
-      const data = snapshot.val();
-      playlistTable.innerHTML = '';
-
-      if (!data) {
-        playlistTable.innerHTML = '<tr><td colspan="5">Nenhuma mídia cadastrada no momento.</td></tr>';
-        return;
+      if (inputPass === ADMIN_PASSWORD) {
+        sessionStorage.setItem('admin_auth', 'true');
+        showAdminContent();
+      } else {
+        alert('Senha incorreta!');
+        document.getElementById('admin-password').value = '';
       }
-
-      Object.keys(data).forEach((key) => {
-        const item = data[key];
-        const tr = document.createElement('tr');
-
-        const horastr = (item.horaInicio && item.horaFim) 
-          ? `${item.horaInicio} até ${item.horaFim}` 
-          : 'O dia todo';
-
-        tr.innerHTML = `
-          <td><span class="badge badge-${item.tipo}">${item.tipo.toUpperCase()}</span></td>
-          <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            <a href="${item.url}" target="_blank">${item.url}</a>
-          </td>
-          <td>${item.tempo}s</td>
-          <td>${horastr}</td>
-          <td>
-            <button class="btn-delete" onclick="deleteMedia('${key}')">Excluir</button>
-          </td>
-        `;
-
-        playlistTable.appendChild(tr);
-      });
     });
+
+    function showAdminContent() {
+      loginScreen.classList.add('hidden');
+      adminContent.classList.remove('hidden');
+      loadFirebaseData();
+    }
+
+    function logout() {
+      sessionStorage.removeItem('admin_auth');
+      location.reload();
+    }
+
+    // Verifica se já está logado na sessão atual
+    if (sessionStorage.getItem('admin_auth') === 'true') {
+      showAdminContent();
+    }
+
+    // --- Lógica do Firebase ---
+    function loadFirebaseData() {
+      if (typeof database === 'undefined') return;
+
+      // Cadastrar Mídia
+      mediaForm.onsubmit = (e) => {
+        e.preventDefault();
+
+        const url = document.getElementById('url').value.trim();
+        const tipo = document.getElementById('tipo').value;
+        const tempo = parseInt(document.getElementById('tempo').value, 10);
+        const horaInicio = document.getElementById('horaInicio').value || null;
+        const horaFim = document.getElementById('horaFim').value || null;
+
+        database.ref('playlist').push({
+          url: url,
+          tipo: tipo,
+          tempo: tempo,
+          horaInicio: horaInicio,
+          horaFim: horaFim,
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        }).then(() => {
+          alert('Mídia cadastrada com sucesso!');
+          mediaForm.reset();
+          document.getElementById('tempo').value = 10;
+        }).catch((error) => {
+          alert('Erro ao cadastrar: ' + error.message);
+        });
+      };
+
+      // Escutar e Renderizar Playlist
+      database.ref('playlist').on('value', (snapshot) => {
+        const data = snapshot.val();
+        playlistTable.innerHTML = '';
+
+        if (!data) {
+          playlistTable.innerHTML = '<tr><td colspan="5">Nenhuma mídia cadastrada no momento.</td></tr>';
+          return;
+        }
+
+        Object.keys(data).forEach((key) => {
+          const item = data[key];
+          const tr = document.createElement('tr');
+
+          const horastr = (item.horaInicio && item.horaFim) 
+            ? `${item.horaInicio} até ${item.horaFim}` 
+            : 'O dia todo';
+
+          tr.innerHTML = `
+            <td><span class="badge badge-${item.tipo}">${item.tipo.toUpperCase()}</span></td>
+            <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              <a href="${item.url}" target="_blank">${item.url}</a>
+            </td>
+            <td>${item.tempo}s</td>
+            <td>${horastr}</td>
+            <td>
+              <button class="btn-delete" onclick="deleteMedia('${key}')">Excluir</button>
+            </td>
+          `;
+
+          playlistTable.appendChild(tr);
+        });
+      });
+    }
 
     // Excluir mídia do Firebase
     window.deleteMedia = function(key) {
