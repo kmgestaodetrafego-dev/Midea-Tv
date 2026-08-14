@@ -27,7 +27,7 @@
     .media-element {
       width: 100%;
       height: 100%;
-      object-fit: contain; /* Ajuste adaptativo de proporção */
+      object-fit: contain;
       border: none;
     }
     #no-data {
@@ -54,10 +54,10 @@
     let currentIndex = 0;
     let timer = null;
 
-    // --- CONTADOR DE USUÁRIOS ONLINE (CORRIGIDO) ---
+    // --- CONTADOR DE USUÁRIOS ONLINE ---
     const myPresenceRef = database.ref('online_users').push();
-    myPresenceRef.set(true); // <-- Correção aqui!
-    myPresenceRef.onDisconnect().remove(); // Remove ao fechar a aba
+    myPresenceRef.set(true);
+    myPresenceRef.onDisconnect().remove();
 
     // --- CARREGAMENTO E EXIBIÇÃO DE MÍDIAS ---
     database.ref('playlist').on('value', (snapshot) => {
@@ -89,7 +89,20 @@
       if (item.tipo === 'imagem') {
         container.innerHTML = `<img src="${item.url}" class="media-element" alt="Mídia">`;
       } else if (item.tipo === 'video') {
-        container.innerHTML = `<iframe src="${item.url}" class="media-element" allow="autoplay"></iframe>`;
+        // Adiciona permissões avançadas ao iframe e o parâmetro de autoplay
+        let videoUrl = item.url;
+        if (!videoUrl.includes('autoplay=1')) {
+          videoUrl += (videoUrl.includes('?') ? '&' : '?') + 'autoplay=1';
+        }
+
+        container.innerHTML = `
+          <iframe 
+            src="${videoUrl}" 
+            class="media-element" 
+            allow="autoplay; encrypted-media; fullscreen" 
+            allowfullscreen
+            frameborder="0">
+          </iframe>`;
       }
 
       // Avança para o próximo item após o tempo configurado
