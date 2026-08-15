@@ -69,12 +69,12 @@
     let currentIndex = 0;
     let timer = null;
 
-    // Converte links do Dropbox e Google Drive
-    function formatUrl(url) {
+    // Converte links do Dropbox e Google Drive para acesso direto
+    function formatUrl(url, tipo) {
       if (!url) return '';
       let clean = url.trim();
 
-      // Dropbox (Otimizado)
+      // Dropbox (Força o download/stream direto)
       if (clean.includes('dropbox.com')) {
         return clean
           .replace('dl=0', 'raw=1')
@@ -86,7 +86,11 @@
       if (clean.includes('drive.google.com')) {
         const match = clean.match(/\/d\/([a-zA-Z0-9_-]+)/);
         if (match && match[1]) {
-          return `https://docs.google.com/uc?export=download&id=${match[1]}`;
+          const id = match[1];
+          // Imagens usam CDN do Google User Content; vídeos usam uc?export=download
+          return tipo === 'imagem' 
+            ? `https://lh3.googleusercontent.com/d/${id}`
+            : `https://docs.google.com/uc?export=download&id=${id}`;
         }
       }
       return clean;
@@ -124,7 +128,9 @@
 
       const item = playlist[currentIndex];
       const duration = (parseInt(item.tempo, 10) || 10) * 1000;
-      const finalUrl = formatUrl(item.url);
+      const finalUrl = formatUrl(item.url, item.tipo);
+
+      console.log(`Exibindo [${item.tipo}]:`, finalUrl);
 
       let newElement;
 
@@ -142,7 +148,7 @@
         newElement = document.createElement('video');
         newElement.className = 'media-element';
         newElement.autoplay = true;
-        newElement.muted = true; // Necessário para autorizar o autoplay automático sem clique
+        newElement.muted = true; // Necessário para permitir autoplay automático no PC
         newElement.playsInline = true;
         newElement.preload = 'auto';
         newElement.src = finalUrl;
@@ -154,7 +160,7 @@
             newElement.play().then(() => {
               startTransition(newElement, duration);
             }).catch((err) => {
-              console.warn("Tentando reprodução muda forçada...", err);
+              console.warn("Autoplay bloqueado. Forçando mudo e tentando novamente...", err);
               newElement.muted = true;
               newElement.play();
               startTransition(newElement, duration);
@@ -165,10 +171,10 @@
         newElement.oncanplaythrough = playVideo;
         newElement.onloadeddata = playVideo;
         
-        // Timeout de segurança (10s) caso o link do vídeo falhe
+        // Timeout de segurança (10s) caso o link do vídeo trave
         setTimeout(() => {
           if (!started) {
-            console.warn("Timeout de vídeo. Pulando mídia...");
+            console.warn("Timeout de carregamento do vídeo. Avançando para a próxima mídia.");
             nextMedia();
           }
         }, 10000);
