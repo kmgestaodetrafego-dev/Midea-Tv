@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Player da TV</title>
+  <title>Player da TV - HLS Otimizado</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body, html {
@@ -26,7 +26,7 @@
       top: 0; 
       left: 0;
       opacity: 0;
-      transition: opacity 1.2s ease-in-out; /* Transição suave de 1.2 segundos */
+      transition: opacity 1.2s ease-in-out;
       z-index: 1;
     }
     .media-element.active {
@@ -46,9 +46,13 @@
     }
   </style>
 
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="config.js"></script>
+
+  <!-- HLS.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
 
@@ -64,6 +68,7 @@
     let playlist = [];
     let currentIndex = 0;
     let timer = null;
+    let hlsInstance = null;
 
     function formatUrl(url) {
       if (!url) return '';
@@ -89,7 +94,7 @@
           showMedia();
         } else {
           clearTimeout(timer);
-          container.innerHTML = `<div id="status-msg">Nenhuma mídia agendada para este dispositivo (${MINHA_TV_ID}).</div>`;
+          container.innerHTML = `<div id="status-msg">Nenhuma mídia agendada para esta TV (${MINHA_TV_ID}).</div>`;
         }
       });
     } else {
@@ -98,6 +103,11 @@
 
     function showMedia() {
       clearTimeout(timer);
+      if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+      }
+
       if (playlist.length === 0) return;
       if (currentIndex >= playlist.length) currentIndex = 0;
 
@@ -111,18 +121,33 @@
         newElement = document.createElement('img');
         newElement.className = 'media-element';
         newElement.src = finalUrl;
-
         newElement.onload = () => startTransition(newElement, duration);
         newElement.onerror = () => nextMedia();
       } else {
         newElement = document.createElement('video');
         newElement.className = 'media-element';
-        newElement.src = finalUrl;
         newElement.autoplay = true;
         newElement.muted = true;
         newElement.playsInline = true;
 
-        newElement.oncanplay = () => startTransition(newElement, duration);
+        // Se o link for um arquivo de Streaming HLS (.m3u8)
+        if (finalUrl.includes('.m3u8') && Hls.isSupported()) {
+          hlsInstance = new Hls({
+            maxBufferLength: 10, // Mantém apenas 10 segundos no buffer para economizar memória da TV
+            enableWorker: true
+          });
+          hlsInstance.loadSource(finalUrl);
+          hlsInstance.attachMedia(newElement);
+          hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+            newElement.play();
+          });
+          newElement.oncanplay = () => startTransition(newElement, duration);
+        } else {
+          // Caso contrário, carrega como MP4 convencional
+          newElement.src = finalUrl;
+          newElement.oncanplay = () => startTransition(newElement, duration);
+        }
+
         newElement.onerror = () => nextMedia();
       }
 
@@ -132,12 +157,10 @@
     function startTransition(newElement, duration) {
       const currentElement = container.querySelector('.media-element.active');
 
-      // Aplica o Fade In
       requestAnimationFrame(() => {
         newElement.classList.add('active');
       });
 
-      // Remove o elemento anterior após concluir o fade (1.2 segundos)
       if (currentElement) {
         currentElement.classList.remove('active');
         setTimeout(() => {
@@ -147,11 +170,9 @@
         }, 1200);
       }
 
-      // Limpa mensagem de status se ainda existir
       const msg = document.getElementById('status-msg');
       if (msg) msg.style.display = 'none';
 
-      // Agenda a próxima mídia
       timer = setTimeout(nextMedia, duration);
     }
 
