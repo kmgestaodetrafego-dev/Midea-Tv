@@ -97,10 +97,15 @@
       return url;
     }
 
-    // --- Validação de Agendamento de Horário ---
+    // --- Validação de Agendamento de Horário (CORRIGIDA) ---
     function isMediaActiveNow(item) {
-      // Se não definiram horário de início ou fim, exibe o dia todo
-      if (!item.horaInicio || !item.horaFim) return true;
+      // Se não definiram horário (null, undefined ou texto vazio ""), exibe o dia todo
+      const semInicio = !item.horaInicio || item.horaInicio.trim() === '';
+      const semFim = !item.horaFim || item.horaFim.trim() === '';
+
+      if (semInicio || semFim) {
+        return true;
+      }
 
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -174,7 +179,6 @@
 
       if (activePlaylist.length === 0) {
         container.innerHTML = '<div id="status-msg">Nenhuma mídia agendada para este horário.</div>';
-        // Revisa novamente em 30 segundos
         timer = setTimeout(showCurrentMedia, 30000);
         return;
       }
