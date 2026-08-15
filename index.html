@@ -5,17 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Player da TV</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body, html {
       width: 100vw;
       height: 100vh;
       overflow: hidden;
       background-color: #000;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: sans-serif;
     }
     #display-container {
       width: 100vw;
@@ -29,27 +25,12 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      border: none;
       position: absolute;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
     }
-    .fade-in {
-      animation: fadeIn 0.8s ease-in-out forwards;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    #status-msg {
-      color: #ffffff;
-      font-size: 1.5rem;
-      text-align: center;
-      padding: 20px;
-    }
+    #status-msg { color: #fff; font-size: 1.5rem; text-align: center; padding: 20px; }
   </style>
 
-  <!-- SDKs do Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="config.js"></script>
@@ -57,11 +38,11 @@
 <body>
 
   <div id="display-container">
-    <div id="status-msg">Carregando mídias do Firebase...</div>
+    <div id="status-msg">Carregando mídias...</div>
   </div>
 
   <script>
-    // 1. Identifica a TV a partir da URL (Exemplo: index.html?tv=tv-recepcao)
+    // Captura o parâmetro ?tv= da URL (Ex: index.html?tv=tv-recepcao)
     const urlParams = new URLSearchParams(window.location.search);
     const MINHA_TV_ID = urlParams.get('tv') || 'todas';
 
@@ -70,32 +51,23 @@
     let currentIndex = 0;
     let timer = null;
 
-    // Tratamento de links (Dropbox e Google Drive)
     function formatUrl(url) {
       if (!url) return '';
       let clean = url.trim();
-
-      if (clean.includes('dropbox.com')) {
-        return clean.replace('dl=0', 'raw=1').replace('dl=1', 'raw=1');
-      }
-
+      if (clean.includes('dropbox.com')) return clean.replace('dl=0', 'raw=1').replace('dl=1', 'raw=1');
       if (clean.includes('drive.google.com')) {
         const match = clean.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) {
-          return `https://drive.google.com/uc?export=view&id=${match[1]}`;
-        }
+        if (match && match[1]) return `https://drive.google.com/uc?export=view&id=${match[1]}`;
       }
-
       return clean;
     }
 
-    // Conexão e sincronização com o Firebase Realtime Database
     if (typeof database !== 'undefined') {
       database.ref('playlist').on('value', (snapshot) => {
         const data = snapshot.val();
         const todasMidias = data ? Object.values(data) : [];
 
-        // Filtra mídias para 'todas' ou para a TV atual
+        // Filtra para exibir apenas mídias destinadas a ESTA TV ou a TODAS
         playlist = todasMidias.filter(item => {
           return !item.tvAlvo || item.tvAlvo === 'todas' || item.tvAlvo === MINHA_TV_ID;
         });
@@ -104,24 +76,17 @@
           showMedia();
         } else {
           clearTimeout(timer);
-          container.innerHTML = `<div id="status-msg">Nenhuma mídia agendada para este dispositivo (${MINHA_TV_ID}).</div>`;
+          container.innerHTML = `<div id="status-msg">Nenhuma mídia configurada para este dispositivo (${MINHA_TV_ID}).</div>`;
         }
-      }, (err) => {
-        container.innerHTML = `<div id="status-msg">Erro de conexão: ${err.message}</div>`;
       });
     } else {
       container.innerHTML = '<div id="status-msg">Erro: config.js não encontrado.</div>';
     }
 
-    // Exibição alternada das mídias
     function showMedia() {
       clearTimeout(timer);
-
       if (playlist.length === 0) return;
-
-      if (currentIndex >= playlist.length) {
-        currentIndex = 0;
-      }
+      if (currentIndex >= playlist.length) currentIndex = 0;
 
       const item = playlist[currentIndex];
       const duration = (parseInt(item.tempo, 10) || 10) * 1000;
@@ -131,18 +96,14 @@
 
       if (item.tipo === 'imagem') {
         const img = document.createElement('img');
-        img.className = 'media-element fade-in';
+        img.className = 'media-element';
         img.src = finalUrl;
-        img.onerror = () => {
-          console.warn("Erro ao carregar mídia, avançando...", finalUrl);
-          nextMedia();
-        };
+        img.onerror = () => nextMedia();
         container.appendChild(img);
-
-      } else if (item.tipo === 'video') {
+      } else {
         const video = document.createElement('video');
+        video.className = 'media-element';
         video.src = finalUrl;
-        video.className = 'media-element fade-in';
         video.autoplay = true;
         video.muted = true;
         video.playsInline = true;
@@ -156,8 +117,6 @@
     function nextMedia() {
       if (playlist.length > 0) {
         currentIndex = (currentIndex + 1) % playlist.length;
-      } else {
-        currentIndex = 0;
       }
       showMedia();
     }
