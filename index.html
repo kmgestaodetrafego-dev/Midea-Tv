@@ -42,7 +42,7 @@
   </div>
 
   <script>
-    // Captura o parâmetro ?tv= da URL (Ex: index.html?tv=tv-recepcao)
+    // Identifica qual TV é esta pelo parâmetro ?tv= na URL (Ex: index.html?tv=tv-recepcao)
     const urlParams = new URLSearchParams(window.location.search);
     const MINHA_TV_ID = urlParams.get('tv') || 'todas';
 
@@ -67,7 +67,7 @@
         const data = snapshot.val();
         const todasMidias = data ? Object.values(data) : [];
 
-        // Filtra para exibir apenas mídias destinadas a ESTA TV ou a TODAS
+        // Filtra para exibir mídias destinadas a TODAS as TVs ou para esta TV específica
         playlist = todasMidias.filter(item => {
           return !item.tvAlvo || item.tvAlvo === 'todas' || item.tvAlvo === MINHA_TV_ID;
         });
@@ -76,7 +76,7 @@
           showMedia();
         } else {
           clearTimeout(timer);
-          container.innerHTML = `<div id="status-msg">Nenhuma mídia configurada para este dispositivo (${MINHA_TV_ID}).</div>`;
+          container.innerHTML = `<div id="status-msg">Nenhuma mídia agendada para este dispositivo (${MINHA_TV_ID}).</div>`;
         }
       });
     } else {
