@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Player da TV - HLS Otimizado</title>
+  <title>Player da TV</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body, html {
@@ -50,9 +50,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="config.js"></script>
-
-  <!-- HLS.js Library -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
 
@@ -68,7 +65,6 @@
     let playlist = [];
     let currentIndex = 0;
     let timer = null;
-    let hlsInstance = null;
 
     function formatUrl(url) {
       if (!url) return '';
@@ -103,10 +99,6 @@
 
     function showMedia() {
       clearTimeout(timer);
-      if (hlsInstance) {
-        hlsInstance.destroy();
-        hlsInstance = null;
-      }
 
       if (playlist.length === 0) return;
       if (currentIndex >= playlist.length) currentIndex = 0;
@@ -129,24 +121,35 @@
         newElement.autoplay = true;
         newElement.muted = true;
         newElement.playsInline = true;
+        newElement.preload = 'auto';
+        newElement.src = finalUrl;
 
-        // Se o link for um arquivo de Streaming HLS (.m3u8)
-        if (finalUrl.includes('.m3u8') && Hls.isSupported()) {
-          hlsInstance = new Hls({
-            maxBufferLength: 10, // Mantém apenas 10 segundos no buffer para economizar memória da TV
-            enableWorker: true
-          });
-          hlsInstance.loadSource(finalUrl);
-          hlsInstance.attachMedia(newElement);
-          hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-            newElement.play();
-          });
-          newElement.oncanplay = () => startTransition(newElement, duration);
-        } else {
-          // Caso contrário, carrega como MP4 convencional
-          newElement.src = finalUrl;
-          newElement.oncanplay = () => startTransition(newElement, duration);
-        }
+        // Tenta iniciar a transição assim que o vídeo tiver dados suficientes
+        let started = false;
+        const playVideo = () => {
+          if (!started) {
+            started = true;
+            newElement.play().then(() => {
+              startTransition(newElement, duration);
+            }).catch(() => {
+              // Caso o autoplay seja bloqueado com som, força o mute e tenta novamente
+              newElement.muted = true;
+              newElement.play();
+              startTransition(newElement, duration);
+            });
+          }
+        };
+
+        newElement.oncanplaythrough = playVideo;
+        newElement.onloadeddata = playVideo; // Fallback para TVs com navegadores antigos
+        
+        // Timeout de segurança: se o vídeo demorar mais de 8s para carregar, pula para a próxima mídia
+        setTimeout(() => {
+          if (!started) {
+            console.warn('Timeout de vídeo: pulando mídia não carregada.');
+            nextMedia();
+          }
+        }, 8000);
 
         newElement.onerror = () => nextMedia();
       }
@@ -165,6 +168,12 @@
         currentElement.classList.remove('active');
         setTimeout(() => {
           if (currentElement.parentNode === container) {
+            // Se o elemento anterior for um vídeo, pausa e limpa a memória
+            if (currentElement.tagName === 'VIDEO') {
+              currentElement.pause();
+              currentElement.src = '';
+              currentElement.load();
+            }
             container.removeChild(currentElement);
           }
         }, 1200);
