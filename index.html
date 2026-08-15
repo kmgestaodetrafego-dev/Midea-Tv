@@ -133,7 +133,7 @@
       statusMsg.innerText = "Erro: arquivo config.js não encontrado.";
     }
 
-    function showMedia() {
+    async function showMedia() {
       clearTimeout(timer);
       isTransitioning = false;
 
@@ -168,7 +168,6 @@
         newElement.preload = 'auto';
 
         let started = false;
-        let hasRetried = false;
 
         const playVideo = () => {
           if (!started) {
@@ -188,29 +187,32 @@
         newElement.onloadeddata = playVideo;
 
         newElement.onerror = () => {
-          if (!hasRetried && finalUrl.includes('dropboxusercontent.com')) {
-            hasRetried = true;
-            console.warn("Falha direta no Dropbox. Tentando via Proxy de CORS...");
-            // Aplica um proxy CORS público para contornar a restrição do servidor do Dropbox
-            newElement.src = `https://corsproxy.io/?${encodeURIComponent(finalUrl)}`;
-            newElement.load();
-            return;
-          }
-          console.error("Erro ao carregar vídeo (pulando):", finalUrl);
+          console.error("Erro na reprodução do Blob de vídeo (pulando):", finalUrl);
           nextMedia();
         };
 
-        // Atribui a URL inicial sem crossOrigin restritivo
-        newElement.src = finalUrl;
-        container.appendChild(newElement);
+        // Baixa o arquivo do Dropbox como arquivo temporário (Blob) para contornar streaming
+        try {
+          const response = await fetch(finalUrl);
+          if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          
+          newElement.src = objectUrl;
+          container.appendChild(newElement);
+        } catch (fetchErr) {
+          console.warn("Falha ao baixar vídeo via Blob, tentando carregamento direto...", fetchErr);
+          newElement.src = finalUrl;
+          container.appendChild(newElement);
+        }
 
-        // Timeout de segurança caso o vídeo fique em buffer infinito
+        // Timeout de segurança caso o download demore mais de 15 segundos
         setTimeout(() => {
           if (!started) {
             console.warn("Timeout no vídeo. Avançando para a próxima mídia...");
             nextMedia();
           }
-        }, 12000);
+        }, 15000);
       }
     }
 
@@ -232,6 +234,10 @@
           if (currentElement && currentElement.parentNode === container) {
             if (currentElement.tagName === 'VIDEO') {
               currentElement.pause();
+              // Libera a memória do Blob da URL local
+              if (currentElement.src.startsWith('blob:')) {
+                URL.revokeObjectURL(currentElement.src);
+              }
               currentElement.src = '';
               currentElement.load();
             }
