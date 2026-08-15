@@ -30,12 +30,10 @@
       z-index: 1;
       pointer-events: none;
     }
-    /* Mídia ativa fica visível e por cima */
     .media-element.active {
       opacity: 1;
       z-index: 2;
     }
-    /* Mídia em saída fica por baixo para não encobrir a nova */
     .media-element.leaving {
       opacity: 0;
       z-index: 1;
@@ -75,20 +73,27 @@
     let playlist = [];
     let currentIndex = 0;
     let timer = null;
-    let isTransitioning = false; // Trava para evitar disparos duplos
+    let isTransitioning = false;
 
     // Converte links do Dropbox e Google Drive
     function formatUrl(url, tipo) {
       if (!url) return '';
       let clean = url.trim();
 
-      // Dropbox
+      // Dropbox (Tratamento especial para evitar erro de CORS nos vídeos)
       if (clean.includes('dropbox.com') || clean.includes('dropboxusercontent.com')) {
         try {
           let parsedUrl = new URL(clean);
           parsedUrl.hostname = 'dl.dropboxusercontent.com';
-          parsedUrl.searchParams.set('raw', '1');
-          parsedUrl.searchParams.delete('dl');
+          
+          if (tipo === 'video') {
+            // Para vídeos, remove o raw=1 que quebra CORS em alguns navegadores e usa dl=1/raw=1 correto
+            parsedUrl.searchParams.set('raw', '1');
+            parsedUrl.searchParams.delete('dl');
+          } else {
+            parsedUrl.searchParams.set('raw', '1');
+            parsedUrl.searchParams.delete('dl');
+          }
           return parsedUrl.toString();
         } catch (e) {
           return clean;
@@ -119,7 +124,6 @@
         });
 
         if (playlist.length > 0) {
-          // Se for a primeira carga ou reconexão, reinicia limpo
           if (!container.querySelector('.media-element')) {
             showMedia();
           }
@@ -167,6 +171,7 @@
         newElement.autoplay = true;
         newElement.muted = true;
         newElement.playsInline = true;
+        newElement.crossOrigin = 'anonymous'; // Tenta requisição com permissão CORS
         newElement.preload = 'auto';
         newElement.src = finalUrl;
 
@@ -177,7 +182,7 @@
             newElement.play().then(() => {
               startTransition(newElement, duration);
             }).catch((err) => {
-              console.warn("Autoplay bloqueado. Forçando modo mudo...", err);
+              console.warn("Autoplay bloqueado. Forçando mudo...", err);
               newElement.muted = true;
               newElement.play();
               startTransition(newElement, duration);
@@ -187,20 +192,26 @@
 
         newElement.oncanplaythrough = playVideo;
         newElement.onloadeddata = playVideo;
+
+        // Tenta um fallback sem crossOrigin se o vídeo falhar inicialmente por restrição de CORS
+        newElement.onerror = () => {
+          if (newElement.crossOrigin) {
+            console.warn("Tentando recarregar vídeo sem atribuição crossOrigin...");
+            newElement.removeAttribute('crossorigin');
+            newElement.src = finalUrl;
+            return;
+          }
+          console.error("Erro ao carregar vídeo (pulando):", finalUrl);
+          nextMedia();
+        };
         
-        // Timeout de segurança para não travar o player se o vídeo demorar
-        const videoTimeout = setTimeout(() => {
+        // Timeout de segurança para não travar o player
+        setTimeout(() => {
           if (!started) {
-            console.warn("Timeout de carregamento de vídeo. Avançando...");
+            console.warn("Timeout no vídeo do Dropbox. Avançando para próxima mídia...");
             nextMedia();
           }
         }, 10000);
-
-        newElement.onerror = () => {
-          clearTimeout(videoTimeout);
-          console.error("Erro ao carregar vídeo, avançando...", finalUrl);
-          nextMedia();
-        };
       }
 
       container.appendChild(newElement);
@@ -212,7 +223,6 @@
 
       const currentElement = container.querySelector('.media-element.active');
 
-      // Coloca a nova mídia por cima e ativa opacidade
       requestAnimationFrame(() => {
         newElement.classList.add('active');
       });
@@ -221,7 +231,6 @@
         currentElement.classList.remove('active');
         currentElement.classList.add('leaving');
 
-        // Remove o elemento antigo do DOM somente APÓS a transição suave de 1.2s terminar
         setTimeout(() => {
           if (currentElement && currentElement.parentNode === container) {
             if (currentElement.tagName === 'VIDEO') {
@@ -236,7 +245,6 @@
 
       statusMsg.style.display = 'none';
 
-      // Garante que não teremos múltiplos timers rodando em paralelo
       clearTimeout(timer);
       timer = setTimeout(nextMedia, duration);
     }
