@@ -75,12 +75,12 @@
     let timer = null;
     let isTransitioning = false;
 
-    // Converte links do Dropbox e Google Drive
+    // Formata e ajusta as URLs
     function formatUrl(url, tipo) {
       if (!url) return '';
       let clean = url.trim();
 
-      // Dropbox
+      // Ajuste para links do Dropbox
       if (clean.includes('dropbox.com') || clean.includes('dropboxusercontent.com')) {
         try {
           let parsedUrl = new URL(clean);
@@ -93,7 +93,7 @@
         }
       }
 
-      // Google Drive
+      // Ajuste para links do Google Drive
       if (clean.includes('drive.google.com') || clean.includes('docs.google.com')) {
         const idMatch = clean.match(/\/d\/([a-zA-Z0-9_-]+)/) || clean.match(/[?&]id=([a-zA-Z0-9_-]+)/);
         if (idMatch && idMatch[1]) {
@@ -133,7 +133,7 @@
       statusMsg.innerText = "Erro: arquivo config.js não encontrado.";
     }
 
-    async function showMedia() {
+    function showMedia() {
       clearTimeout(timer);
       isTransitioning = false;
 
@@ -155,7 +155,7 @@
         
         newElement.onload = () => startTransition(newElement, duration);
         newElement.onerror = () => {
-          console.error("Erro ao carregar imagem, avançando...", finalUrl);
+          console.error("Erro ao carregar imagem (avançando):", finalUrl);
           nextMedia();
         };
         container.appendChild(newElement);
@@ -165,7 +165,7 @@
         newElement.autoplay = true;
         newElement.muted = true;
         newElement.playsInline = true;
-        newElement.preload = 'auto';
+        newElement.preload = 'metadata'; // Carrega cabeçalho básico para evitar consumo excessivo
 
         let started = false;
 
@@ -175,7 +175,7 @@
             newElement.play().then(() => {
               startTransition(newElement, duration);
             }).catch((err) => {
-              console.warn("Autoplay bloqueado. Forçando mudo...", err);
+              console.warn("Autoplay impedido, ajustando mudo...", err);
               newElement.muted = true;
               newElement.play();
               startTransition(newElement, duration);
@@ -183,36 +183,24 @@
           }
         };
 
-        newElement.oncanplaythrough = playVideo;
-        newElement.onloadeddata = playVideo;
+        newElement.onloadedmetadata = playVideo;
+        newElement.oncanplay = playVideo;
 
         newElement.onerror = () => {
-          console.error("Erro na reprodução do Blob de vídeo (pulando):", finalUrl);
+          console.error("Erro ao carregar vídeo (pulando para próxima mídia):", finalUrl);
           nextMedia();
         };
 
-        // Baixa o arquivo do Dropbox como arquivo temporário (Blob) para contornar streaming
-        try {
-          const response = await fetch(finalUrl);
-          if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-          const blob = await response.blob();
-          const objectUrl = URL.createObjectURL(blob);
-          
-          newElement.src = objectUrl;
-          container.appendChild(newElement);
-        } catch (fetchErr) {
-          console.warn("Falha ao baixar vídeo via Blob, tentando carregamento direto...", fetchErr);
-          newElement.src = finalUrl;
-          container.appendChild(newElement);
-        }
+        newElement.src = finalUrl;
+        container.appendChild(newElement);
 
-        // Timeout de segurança caso o download demore mais de 15 segundos
+        // Timeout de segurança para evitar travamento se a mídia falhar sem disparar onerror
         setTimeout(() => {
           if (!started) {
-            console.warn("Timeout no vídeo. Avançando para a próxima mídia...");
+            console.warn("Timeout de carregamento de vídeo atingido. Avançando...");
             nextMedia();
           }
-        }, 15000);
+        }, 12000);
       }
     }
 
@@ -234,11 +222,7 @@
           if (currentElement && currentElement.parentNode === container) {
             if (currentElement.tagName === 'VIDEO') {
               currentElement.pause();
-              // Libera a memória do Blob da URL local
-              if (currentElement.src.startsWith('blob:')) {
-                URL.revokeObjectURL(currentElement.src);
-              }
-              currentElement.src = '';
+              currentElement.removeAttribute('src');
               currentElement.load();
             }
             container.removeChild(currentElement);
