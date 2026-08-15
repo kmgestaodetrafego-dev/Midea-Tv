@@ -1,4 +1,3 @@
-// Configurações do seu projeto no Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBhPiF9cHSnDIEx0POwAFzMJZUlCACjQww",
   authDomain: "painel-de-midia-f6172.firebaseapp.com",
@@ -9,10 +8,9 @@ const firebaseConfig = {
   appId: "1:402409411643:web:5cba4bb7dc08aa4e7ab81e"
 };
 
-// Inicializa o Firebase no app
+// Inicializa o Firebase
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
-// Exporta a referência do Realtime Database
 const database = firebase.database();
