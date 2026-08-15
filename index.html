@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Player da TV</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+    }
     body, html {
       width: 100vw;
       height: 100vh;
@@ -75,12 +79,12 @@
     let timer = null;
     let isTransitioning = false;
 
-    // Formata e ajusta as URLs
+    // Converte links do Dropbox e Google Drive para links diretos
     function formatUrl(url, tipo) {
       if (!url) return '';
       let clean = url.trim();
 
-      // Ajuste para links do Dropbox
+      // Ajuste para Dropbox
       if (clean.includes('dropbox.com') || clean.includes('dropboxusercontent.com')) {
         try {
           let parsedUrl = new URL(clean);
@@ -93,7 +97,7 @@
         }
       }
 
-      // Ajuste para links do Google Drive
+      // Ajuste para Google Drive
       if (clean.includes('drive.google.com') || clean.includes('docs.google.com')) {
         const idMatch = clean.match(/\/d\/([a-zA-Z0-9_-]+)/) || clean.match(/[?&]id=([a-zA-Z0-9_-]+)/);
         if (idMatch && idMatch[1]) {
@@ -162,42 +166,57 @@
       } else {
         newElement = document.createElement('video');
         newElement.className = 'media-element';
-        newElement.autoplay = true;
+        
+        // Atributos cruciais para contornar políticas de economia de energia e autoplay de TVs
         newElement.muted = true;
-        newElement.playsInline = true;
-        newElement.preload = 'metadata'; // Carrega cabeçalho básico para evitar consumo excessivo
+        newElement.defaultMuted = true;
+        newElement.setAttribute('muted', '');
+        newElement.setAttribute('playsinline', '');
+        newElement.setAttribute('webkit-playsinline', '');
+        newElement.autoplay = true;
+        newElement.preload = 'auto';
 
         let started = false;
 
-        const playVideo = () => {
-          if (!started) {
-            started = true;
-            newElement.play().then(() => {
+        const startPlayback = () => {
+          if (started) return;
+          started = true;
+
+          const playPromise = newElement.play();
+
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
               startTransition(newElement, duration);
             }).catch((err) => {
-              console.warn("Autoplay impedido, ajustando mudo...", err);
+              console.warn("Autoplay bloqueado pelo sistema, forçando mudo novamente...", err);
               newElement.muted = true;
-              newElement.play();
-              startTransition(newElement, duration);
+              newElement.play().then(() => {
+                startTransition(newElement, duration);
+              }).catch((e) => {
+                console.error("Não foi possível reproduzir o vídeo. Pulando...", e);
+                nextMedia();
+              });
             });
+          } else {
+            startTransition(newElement, duration);
           }
         };
 
-        newElement.onloadedmetadata = playVideo;
-        newElement.oncanplay = playVideo;
+        newElement.onloadeddata = startPlayback;
+        newElement.oncanplay = startPlayback;
 
         newElement.onerror = () => {
-          console.error("Erro ao carregar vídeo (pulando para próxima mídia):", finalUrl);
+          console.error("Erro ao carregar vídeo (pulando):", finalUrl);
           nextMedia();
         };
 
         newElement.src = finalUrl;
         container.appendChild(newElement);
 
-        // Timeout de segurança para evitar travamento se a mídia falhar sem disparar onerror
+        // Timeout de segurança caso o arquivo demore a carregar na TV
         setTimeout(() => {
           if (!started) {
-            console.warn("Timeout de carregamento de vídeo atingido. Avançando...");
+            console.warn("Timeout ao carregar vídeo. Avançando para a próxima mídia...");
             nextMedia();
           }
         }, 12000);
