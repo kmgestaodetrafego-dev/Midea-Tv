@@ -69,24 +69,27 @@
     let currentIndex = 0;
     let timer = null;
 
-    // Converte links do Dropbox e Google Drive para acesso direto de mídia/stream
+    // Converte links do Dropbox e Google Drive
     function formatUrl(url, tipo) {
       if (!url) return '';
       let clean = url.trim();
 
-      // Dropbox (Trata links modernos scl/fi mantendo os parâmetros como rlkey intactos)
+      // Dropbox
       if (clean.includes('dropbox.com') || clean.includes('dropboxusercontent.com')) {
-        let parsedUrl = new URL(clean);
-        parsedUrl.hostname = 'dl.dropboxusercontent.com';
-        parsedUrl.searchParams.set('raw', '1');
-        parsedUrl.searchParams.delete('dl');
-        return parsedUrl.toString();
+        try {
+          let parsedUrl = new URL(clean);
+          parsedUrl.hostname = 'dl.dropboxusercontent.com';
+          parsedUrl.searchParams.set('raw', '1');
+          parsedUrl.searchParams.delete('dl');
+          return parsedUrl.toString();
+        } catch (e) {
+          return clean;
+        }
       }
 
-      // Google Drive (Captura o ID de qualquer formato de link)
+      // Google Drive
       if (clean.includes('drive.google.com') || clean.includes('docs.google.com')) {
         const idMatch = clean.match(/\/d\/([a-zA-Z0-9_-]+)/) || clean.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-        
         if (idMatch && idMatch[1]) {
           const id = idMatch[1];
           return tipo === 'imagem' 
@@ -162,7 +165,7 @@
             newElement.play().then(() => {
               startTransition(newElement, duration);
             }).catch((err) => {
-              console.warn("Autoplay bloqueado. Forçando mudo...", err);
+              console.warn("Autoplay bloqueado. Tentando modo mudo...", err);
               newElement.muted = true;
               newElement.play();
               startTransition(newElement, duration);
@@ -173,16 +176,17 @@
         newElement.oncanplaythrough = playVideo;
         newElement.onloadeddata = playVideo;
         
-        // Timeout de segurança (10s) caso o link do vídeo não responda
-        setTimeout(() => {
+        // Timeout de segurança caso o vídeo falhe ou demore demais
+        const videoTimeout = setTimeout(() => {
           if (!started) {
-            console.warn("Timeout ao carregar vídeo. Avançando...");
+            console.warn("Timeout de vídeo do Dropbox detectado. Pulando para a próxima mídia...");
             nextMedia();
           }
-        }, 10000);
+        }, 12000);
 
-        newElement.onerror = () => {
-          console.error("Erro ao carregar vídeo:", finalUrl);
+        newElement.onerror = (e) => {
+          clearTimeout(videoTimeout);
+          console.error("Erro ao carregar vídeo (pulando):", finalUrl);
           nextMedia();
         };
       }
