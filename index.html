@@ -80,20 +80,13 @@
       if (!url) return '';
       let clean = url.trim();
 
-      // Dropbox (Tratamento especial para evitar erro de CORS nos vídeos)
+      // Dropbox
       if (clean.includes('dropbox.com') || clean.includes('dropboxusercontent.com')) {
         try {
           let parsedUrl = new URL(clean);
           parsedUrl.hostname = 'dl.dropboxusercontent.com';
-          
-          if (tipo === 'video') {
-            // Para vídeos, remove o raw=1 que quebra CORS em alguns navegadores e usa dl=1/raw=1 correto
-            parsedUrl.searchParams.set('raw', '1');
-            parsedUrl.searchParams.delete('dl');
-          } else {
-            parsedUrl.searchParams.set('raw', '1');
-            parsedUrl.searchParams.delete('dl');
-          }
+          parsedUrl.searchParams.set('raw', '1');
+          parsedUrl.searchParams.delete('dl');
           return parsedUrl.toString();
         } catch (e) {
           return clean;
@@ -165,17 +158,18 @@
           console.error("Erro ao carregar imagem, avançando...", finalUrl);
           nextMedia();
         };
+        container.appendChild(newElement);
       } else {
         newElement = document.createElement('video');
         newElement.className = 'media-element';
         newElement.autoplay = true;
         newElement.muted = true;
         newElement.playsInline = true;
-        newElement.crossOrigin = 'anonymous'; // Tenta requisição com permissão CORS
         newElement.preload = 'auto';
-        newElement.src = finalUrl;
 
         let started = false;
+        let hasRetried = false;
+
         const playVideo = () => {
           if (!started) {
             started = true;
@@ -193,28 +187,31 @@
         newElement.oncanplaythrough = playVideo;
         newElement.onloadeddata = playVideo;
 
-        // Tenta um fallback sem crossOrigin se o vídeo falhar inicialmente por restrição de CORS
         newElement.onerror = () => {
-          if (newElement.crossOrigin) {
-            console.warn("Tentando recarregar vídeo sem atribuição crossOrigin...");
-            newElement.removeAttribute('crossorigin');
-            newElement.src = finalUrl;
+          if (!hasRetried && finalUrl.includes('dropboxusercontent.com')) {
+            hasRetried = true;
+            console.warn("Falha direta no Dropbox. Tentando via Proxy de CORS...");
+            // Aplica um proxy CORS público para contornar a restrição do servidor do Dropbox
+            newElement.src = `https://corsproxy.io/?${encodeURIComponent(finalUrl)}`;
+            newElement.load();
             return;
           }
           console.error("Erro ao carregar vídeo (pulando):", finalUrl);
           nextMedia();
         };
-        
-        // Timeout de segurança para não travar o player
+
+        // Atribui a URL inicial sem crossOrigin restritivo
+        newElement.src = finalUrl;
+        container.appendChild(newElement);
+
+        // Timeout de segurança caso o vídeo fique em buffer infinito
         setTimeout(() => {
           if (!started) {
-            console.warn("Timeout no vídeo do Dropbox. Avançando para próxima mídia...");
+            console.warn("Timeout no vídeo. Avançando para a próxima mídia...");
             nextMedia();
           }
-        }, 10000);
+        }, 12000);
       }
-
-      container.appendChild(newElement);
     }
 
     function startTransition(newElement, duration) {
