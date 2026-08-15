@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Midea TV - Player de Exibição</title>
+  <title>Midea TV - Exibição de Mídias</title>
   <style>
     * {
       margin: 0;
@@ -38,15 +38,23 @@
       left: 0;
     }
 
+    /* Animação Suave de Transição (Fade In) */
     .fade-in {
-      animation: fadeInEffect 0.8s ease-in-out forwards;
+      animation: fadeInEffect 1.2s ease-in-out forwards;
     }
 
     @keyframes fadeInEffect {
-      from { opacity: 0; }
-      to { opacity: 1; }
+      0% {
+        opacity: 0;
+        transform: scale(1.02);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
 
+    /* Mensagem de Status / Carregamento */
     #status-msg {
       color: #ffffff;
       font-size: 1.5rem;
@@ -69,146 +77,128 @@
 
   <script>
     const container = document.getElementById('display-container');
-    let fullPlaylist = [];
-    let activePlaylist = [];
+    let playlist = [];
     let currentIndex = 0;
     let timer = null;
 
-    // --- Formatação do Link ---
+    // --- Formatação Automática de Links (Dropbox e Google Drive) ---
     function formatUrl(url) {
       if (!url) return '';
-      let clean = url.trim();
-
-      if (clean.includes('dropbox.com')) {
-        return clean.replace('dl=0', 'raw=1').replace('dl=1', 'raw=1');
+      
+      // Ajuste para Dropbox
+      if (url.includes('dropbox.com')) {
+        return url.replace('dl=0', 'raw=1').replace('dl=1', 'raw=1');
+      }
+      
+      // Ajuste para exibição/embed do Google Drive
+      if (url.includes('drive.google.com') && url.includes('/view')) {
+        return url.replace('/view', '/preview');
       }
 
-      if (clean.includes('drive.google.com')) {
-        const match = clean.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) {
-          return `https://drive.google.com/uc?export=view&id=${match[1]}`;
-        }
-      }
-
-      return clean;
+      return url;
     }
 
-    // --- Checagem de Horário Simplificada ---
-    function isMediaActiveNow(item) {
-      // Se não tem inicio OU não tem fim (ou são strings vazias/espacos), EXIBE O DIA TODO
-      if (!item.horaInicio || !item.horaFim || item.horaInicio.trim() === "" || item.horaFim.trim() === "") {
-        return true;
-      }
-
-      const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-      const startParts = item.horaInicio.split(':');
-      const endParts = item.horaFim.split(':');
-
-      if (startParts.length < 2 || endParts.length < 2) return true;
-
-      const startMinutes = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-      const endMinutes = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
-
-      if (isNaN(startMinutes) || isNaN(endMinutes)) return true;
-
-      if (startMinutes <= endMinutes) {
-        return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-      } else {
-        return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
-      }
-    }
-
-    function updateActivePlaylist() {
-      activePlaylist = fullPlaylist.filter(item => isMediaActiveNow(item));
-    }
-
-    // --- Conexão Firebase ---
+    // --- Conexão e Escuta do Firebase ---
     if (typeof database !== 'undefined') {
+      
+      // Indicador de Presença Online
+      const myPresenceRef = database.ref('online_users').push();
+      myPresenceRef.set(true);
+      myPresenceRef.onDisconnect().remove();
+
+      // Atualização em tempo real da lista
       database.ref('playlist').on('value', (snapshot) => {
         const data = snapshot.val();
-        fullPlaylist = [];
+        playlist = [];
 
         if (data) {
           Object.keys(data).forEach(key => {
-            fullPlaylist.push({ id: key, ...data[key] });
+            playlist.push(data[key]);
           });
         }
 
-        updateActivePlaylist();
-
-        if (activePlaylist.length > 0) {
+        if (playlist.length > 0) {
+          if (currentIndex >= playlist.length) {
+            currentIndex = 0;
+          }
           showCurrentMedia();
         } else {
           clearTimeout(timer);
-          container.innerHTML = '<div id="status-msg">Nenhuma mídia ativa no momento.</div>';
+          container.innerHTML = '<div id="status-msg">Nenhuma mídia cadastrada no momento.</div>';
         }
+      }, (error) => {
+        console.error("Erro ao ler do Firebase:", error);
+        container.innerHTML = '<div id="status-msg">Erro de conexão com o Firebase. Verifique o config.js</div>';
       });
+
     } else {
-      container.innerHTML = '<div id="status-msg">Erro: config.js não encontrado.</div>';
+      container.innerHTML = '<div id="status-msg">Erro: config.js não encontrado ou Firebase não configurado.</div>';
     }
 
-    // --- Exibição ---
+    // --- Exibição Principal com Animação Fade-In ---
     function showCurrentMedia() {
       clearTimeout(timer);
-      updateActivePlaylist();
 
-      if (activePlaylist.length === 0) {
-        container.innerHTML = '<div id="status-msg">Nenhuma mídia ativa no momento.</div>';
-        timer = setTimeout(showCurrentMedia, 5000);
-        return;
-      }
+      if (playlist.length === 0) return;
 
-      if (currentIndex >= activePlaylist.length) {
-        currentIndex = 0;
-      }
+      const item = playlist[currentIndex];
+      const duration = (item.tempo || 10) * 1000;
+      const formattedUrl = formatUrl(item.url);
 
-      const item = activePlaylist[currentIndex];
-      const duration = (parseInt(item.tempo, 10) || 10) * 1000;
-      const finalUrl = formatUrl(item.url);
-
+      // Limpa a tela
       container.innerHTML = '';
 
       if (item.tipo === 'imagem') {
         const img = document.createElement('img');
+        img.src = formattedUrl;
         img.className = 'media-element fade-in';
-        img.src = finalUrl;
-        img.onerror = () => {
-          console.warn("Erro ao carregar imagem, pulando:", finalUrl);
-          nextMedia();
-        };
+        img.alt = 'Mídia em exibição';
+        img.onerror = () => nextMedia();
         container.appendChild(img);
 
       } else if (item.tipo === 'video') {
-        if (finalUrl.includes('youtube.com') || finalUrl.includes('youtu.be') || finalUrl.includes('drive.google.com')) {
+        
+        // Se for YouTube ou Google Drive (Iframe)
+        if (formattedUrl.includes('youtube.com') || formattedUrl.includes('youtu.be') || formattedUrl.includes('drive.google.com')) {
           const iframe = document.createElement('iframe');
-          iframe.src = finalUrl;
+          iframe.src = formattedUrl;
           iframe.className = 'media-element fade-in';
           iframe.allow = "autoplay; encrypted-media; fullscreen";
+          iframe.allowFullscreen = true;
           container.appendChild(iframe);
+
         } else {
+          // Se for vídeo MP4 nativo / Dropbox
           const video = document.createElement('video');
-          video.src = finalUrl;
+          video.src = formattedUrl;
           video.className = 'media-element fade-in';
           video.autoplay = true;
-          video.muted = true;
+          video.muted = true; // Muted é obrigatório para Autoplay em navegadores
           video.playsInline = true;
-          video.onerror = () => nextMedia();
+          video.controls = false;
+
+          video.play().catch(err => {
+            console.warn("Autoplay bloqueado pelo navegador:", err);
+          });
+
+          video.onerror = () => {
+            console.error("Erro ao carregar o vídeo:", formattedUrl);
+            nextMedia();
+          };
+
           container.appendChild(video);
         }
       }
 
-      timer = setTimeout(nextMedia, duration);
+      // Agendamento do tempo da próxima mídia
+      timer = setTimeout(() => {
+        nextMedia();
+      }, duration);
     }
 
     function nextMedia() {
-      updateActivePlaylist();
-      if (activePlaylist.length > 0) {
-        currentIndex = (currentIndex + 1) % activePlaylist.length;
-      } else {
-        currentIndex = 0;
-      }
+      if (playlist.length === 0) return;
+      currentIndex = (currentIndex + 1) % playlist.length;
       showCurrentMedia();
     }
   </script>
