@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Player da TV</title>
+  <title>Player da TV / PC</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body, html {
@@ -42,7 +42,10 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 0;
+      z-index: 10;
+      cursor: pointer;
+      background: rgba(0,0,0,0.7);
+      border-radius: 8px;
     }
   </style>
 
@@ -54,7 +57,7 @@
 <body>
 
   <div id="display-container">
-    <div id="status-msg">Carregando mídias...</div>
+    <div id="status-msg" onclick="initPlayer()">Clique em qualquer lugar para iniciar o player</div>
   </div>
 
   <script>
@@ -62,19 +65,38 @@
     const MINHA_TV_ID = urlParams.get('tv') || 'todas';
 
     const container = document.getElementById('display-container');
+    const statusMsg = document.getElementById('status-msg');
     let playlist = [];
     let currentIndex = 0;
     let timer = null;
+    let startedByClick = false;
 
+    // Converte links do Drive e Dropbox em mídias diretas
     function formatUrl(url) {
       if (!url) return '';
       let clean = url.trim();
-      if (clean.includes('dropbox.com')) return clean.replace('dl=0', 'raw=1').replace('dl=1', 'raw=1');
+
+      // Dropbox
+      if (clean.includes('dropbox.com')) {
+        return clean.replace('dl=0', 'raw=1').replace('dl=1', 'raw=1').replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+      }
+
+      // Google Drive
       if (clean.includes('drive.google.com')) {
         const match = clean.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+        if (match && match[1]) {
+          return `https://lh3.googleusercontent.com/d/${match[1]}`;
+        }
       }
       return clean;
+    }
+
+    function initPlayer() {
+      startedByClick = true;
+      statusMsg.innerText = "Carregando mídias...";
+      if (playlist.length > 0) {
+        showMedia();
+      }
     }
 
     if (typeof database !== 'undefined') {
@@ -87,14 +109,22 @@
         });
 
         if (playlist.length > 0) {
-          showMedia();
+          if (startedByClick) {
+            showMedia();
+          } else {
+            statusMsg.innerText = "Clique aqui para iniciar a reprodução";
+          }
         } else {
           clearTimeout(timer);
-          container.innerHTML = `<div id="status-msg">Nenhuma mídia agendada para esta TV (${MINHA_TV_ID}).</div>`;
+          statusMsg.style.display = 'block';
+          statusMsg.innerText = `Nenhuma mídia agendada para esta TV (${MINHA_TV_ID}).`;
         }
+      }, (error) => {
+        console.error("Erro no Firebase Database:", error);
+        statusMsg.innerText = "Erro ao carregar dados do Firebase. Verifique o console.";
       });
     } else {
-      container.innerHTML = '<div id="status-msg">Erro: config.js não encontrado.</div>';
+      statusMsg.innerText = "Erro: arquivo config.js não foi encontrado ou falhou ao carregar.";
     }
 
     function showMedia() {
@@ -107,14 +137,20 @@
       const duration = (parseInt(item.tempo, 10) || 10) * 1000;
       const finalUrl = formatUrl(item.url);
 
+      console.log(`Carregando [${item.tipo}]:`, finalUrl);
+
       let newElement;
 
       if (item.tipo === 'imagem') {
         newElement = document.createElement('img');
         newElement.className = 'media-element';
         newElement.src = finalUrl;
+        
         newElement.onload = () => startTransition(newElement, duration);
-        newElement.onerror = () => nextMedia();
+        newElement.onerror = () => {
+          console.error("Erro ao carregar imagem:", finalUrl);
+          nextMedia();
+        };
       } else {
         newElement = document.createElement('video');
         newElement.className = 'media-element';
@@ -124,15 +160,14 @@
         newElement.preload = 'auto';
         newElement.src = finalUrl;
 
-        // Tenta iniciar a transição assim que o vídeo tiver dados suficientes
         let started = false;
         const playVideo = () => {
           if (!started) {
             started = true;
             newElement.play().then(() => {
               startTransition(newElement, duration);
-            }).catch(() => {
-              // Caso o autoplay seja bloqueado com som, força o mute e tenta novamente
+            }).catch((err) => {
+              console.warn("Autoplay bloqueado pelo navegador, tentando mudo...", err);
               newElement.muted = true;
               newElement.play();
               startTransition(newElement, duration);
@@ -141,17 +176,20 @@
         };
 
         newElement.oncanplaythrough = playVideo;
-        newElement.onloadeddata = playVideo; // Fallback para TVs com navegadores antigos
+        newElement.onloadeddata = playVideo;
         
-        // Timeout de segurança: se o vídeo demorar mais de 8s para carregar, pula para a próxima mídia
+        // Timeout de segurança (10s) caso o link falhe
         setTimeout(() => {
           if (!started) {
-            console.warn('Timeout de vídeo: pulando mídia não carregada.');
+            console.warn("Timeout ao carregar o vídeo. Pulando para o próximo.");
             nextMedia();
           }
-        }, 8000);
+        }, 10000);
 
-        newElement.onerror = () => nextMedia();
+        newElement.onerror = () => {
+          console.error("Erro ao carregar vídeo:", finalUrl);
+          nextMedia();
+        };
       }
 
       container.appendChild(newElement);
@@ -168,7 +206,6 @@
         currentElement.classList.remove('active');
         setTimeout(() => {
           if (currentElement.parentNode === container) {
-            // Se o elemento anterior for um vídeo, pausa e limpa a memória
             if (currentElement.tagName === 'VIDEO') {
               currentElement.pause();
               currentElement.src = '';
@@ -179,9 +216,7 @@
         }, 1200);
       }
 
-      const msg = document.getElementById('status-msg');
-      if (msg) msg.style.display = 'none';
-
+      statusMsg.style.display = 'none';
       timer = setTimeout(nextMedia, duration);
     }
 
