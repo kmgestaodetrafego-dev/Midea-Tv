@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin - Controle de Mídias e TVs</title>
+  
+  <script>
+    // Verificação de autenticação no início do carregamento
+    if (sessionStorage.getItem('admin_autenticado') !== 'true') {
+      window.location.replace('./senha.html');
+    }
+  </script>
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -91,18 +99,12 @@
     }
   </style>
 
+  <!-- SDKs do Firebase v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="config.js"></script>
 </head>
 <body>
-
-  <script>
-    // Proteção de Rota: se não passou pela senha.html, redireciona
-    if (sessionStorage.getItem('admin_autenticado') !== 'true') {
-      window.location.href = 'senha.html';
-    }
-  </script>
 
   <div class="container">
     <div class="header">
@@ -110,18 +112,18 @@
       <button class="btn-logout" onclick="logout()">Sair</button>
     </div>
 
-    <!-- Seção 1: Cadastrar Nova TV -->
+    <!-- Cadastrar TV -->
     <div class="card">
       <h2>1. Cadastrar Nova TV</h2>
       <form id="tv-form">
         <div class="form-group inline-form">
-          <input type="text" id="nomeTv" placeholder="Ex: TV Recepção, TV Loja 01, TV Refeitório" required>
+          <input type="text" id="nomeTv" placeholder="Ex: TV Recepção, TV Salão, TV Loja" required>
           <button type="submit" class="btn-primary" style="width: auto; padding: 0 20px;">Adicionar TV</button>
         </div>
       </form>
     </div>
 
-    <!-- Seção 2: Cadastrar Mídia -->
+    <!-- Cadastrar Mídia -->
     <div class="card">
       <h2>2. Cadastrar Mídia na Playlist</h2>
       <form id="media-form">
@@ -134,7 +136,7 @@
           <label for="tipo">Tipo de Mídia:</label>
           <select id="tipo">
             <option value="imagem">Imagem</option>
-            <option value="video">Vídeo</option>
+            <option value="video">Vídeo MP4</option>
           </select>
         </div>
 
@@ -144,10 +146,9 @@
         </div>
 
         <div class="form-group">
-          <label for="tvAlvo">Destino (Em qual TV vai passar?):</label>
+          <label for="tvAlvo">Destino (Qual TV vai exibir?):</label>
           <select id="tvAlvo">
             <option value="todas">Todas as TVs</option>
-            <!-- TVs cadastradas serão carregadas aqui automaticamente -->
           </select>
         </div>
 
@@ -155,7 +156,7 @@
       </form>
     </div>
 
-    <!-- Seção 3: Lista de Mídias Ativas -->
+    <!-- Lista de Mídias -->
     <h2>Mídias Cadastradas</h2>
     <ul id="media-list" class="media-list"></ul>
   </div>
@@ -164,7 +165,7 @@
     const tvSelect = document.getElementById('tvAlvo');
     const mediaListContainer = document.getElementById('media-list');
 
-    // 1. Cadastrar Nova TV no Firebase
+    // Cadastrar TV no Firebase
     document.getElementById('tv-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const nomeTv = document.getElementById('nomeTv').value.trim();
@@ -178,7 +179,7 @@
       });
     });
 
-    // 2. Carregar Lista de TVs no <select>
+    // Carregar Lista de TVs no <select>
     database.ref('tvs').on('value', (snapshot) => {
       tvSelect.innerHTML = '<option value="todas">Todas as TVs</option>';
       const data = snapshot.val();
@@ -192,7 +193,7 @@
       }
     });
 
-    // 3. Salvar Mídia no Firebase
+    // Cadastrar Mídia
     document.getElementById('media-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const newMedia = {
@@ -203,19 +204,19 @@
       };
 
       database.ref('playlist').push(newMedia).then(() => {
-        alert('Mídia salva na playlist!');
+        alert('Mídia salva!');
         document.getElementById('media-form').reset();
         document.getElementById('tempo').value = 10;
       });
     });
 
-    // 4. Listar Mídias com Botão de Excluir
+    // Listar Mídias com opção de excluir
     database.ref('playlist').on('value', (snapshot) => {
       mediaListContainer.innerHTML = '';
       const data = snapshot.val();
 
       if (!data) {
-        mediaListContainer.innerHTML = '<p>Nenhuma mídia cadastrada.</p>';
+        mediaListContainer.innerHTML = '<p>Nenhuma mídia cadastrada no momento.</p>';
         return;
       }
 
@@ -228,7 +229,7 @@
             <strong>${item.url}</strong>
             <span class="badge">Tipo: ${item.tipo}</span>
             <span class="badge">Tempo: ${item.tempo}s</span>
-            <span class="badge badge-tv">Destino: ${item.tvAlvo === 'todas' ? 'Todas as TVs' : item.tvAlvo}</span>
+            <span class="badge badge-tv">TV: ${item.tvAlvo === 'todas' ? 'Todas as TVs' : item.tvAlvo}</span>
           </div>
           <button class="btn-delete" onclick="removerMidia('${key}')">Excluir</button>
         `;
@@ -244,7 +245,7 @@
 
     function logout() {
       sessionStorage.removeItem('admin_autenticado');
-      window.location.href = 'senha.html';
+      window.location.replace('./senha.html');
     }
   </script>
 </body>
