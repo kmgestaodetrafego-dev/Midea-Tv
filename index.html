@@ -69,26 +69,26 @@
     let currentIndex = 0;
     let timer = null;
 
-    // Converte links do Dropbox e Google Drive para acesso direto sem bloqueio
+    // Converte links do Dropbox e Google Drive para acesso direto de mídia/stream
     function formatUrl(url, tipo) {
       if (!url) return '';
       let clean = url.trim();
 
-      // Dropbox (Força o stream/download direto)
-      if (clean.includes('dropbox.com')) {
-        return clean
-          .replace('dl=0', 'raw=1')
-          .replace('dl=1', 'raw=1')
-          .replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+      // Dropbox (Trata links modernos scl/fi mantendo os parâmetros como rlkey intactos)
+      if (clean.includes('dropbox.com') || clean.includes('dropboxusercontent.com')) {
+        let parsedUrl = new URL(clean);
+        parsedUrl.hostname = 'dl.dropboxusercontent.com';
+        parsedUrl.searchParams.set('raw', '1');
+        parsedUrl.searchParams.delete('dl');
+        return parsedUrl.toString();
       }
 
-      // Google Drive (Captura o ID de qualquer variação de link)
+      // Google Drive (Captura o ID de qualquer formato de link)
       if (clean.includes('drive.google.com') || clean.includes('docs.google.com')) {
         const idMatch = clean.match(/\/d\/([a-zA-Z0-9_-]+)/) || clean.match(/[?&]id=([a-zA-Z0-9_-]+)/);
         
         if (idMatch && idMatch[1]) {
           const id = idMatch[1];
-          // Imagens usam obrigatoriamente a CDN do Google (lh3); vídeos usam rota de download/stream
           return tipo === 'imagem' 
             ? `https://lh3.googleusercontent.com/d/${id}`
             : `https://docs.google.com/uc?export=download&id=${id}`;
@@ -150,7 +150,7 @@
         newElement = document.createElement('video');
         newElement.className = 'media-element';
         newElement.autoplay = true;
-        newElement.muted = true; // Garante autoplay em navegadores sem requerer clique
+        newElement.muted = true;
         newElement.playsInline = true;
         newElement.preload = 'auto';
         newElement.src = finalUrl;
@@ -162,7 +162,7 @@
             newElement.play().then(() => {
               startTransition(newElement, duration);
             }).catch((err) => {
-              console.warn("Autoplay bloqueado. Tentando modo mudo forçado...", err);
+              console.warn("Autoplay bloqueado. Forçando mudo...", err);
               newElement.muted = true;
               newElement.play();
               startTransition(newElement, duration);
@@ -173,10 +173,10 @@
         newElement.oncanplaythrough = playVideo;
         newElement.onloadeddata = playVideo;
         
-        // Timeout de segurança (10s) caso o link do vídeo trave
+        // Timeout de segurança (10s) caso o link do vídeo não responda
         setTimeout(() => {
           if (!started) {
-            console.warn("Timeout no carregamento do vídeo. Pulando para a próxima mídia...");
+            console.warn("Timeout ao carregar vídeo. Avançando...");
             nextMedia();
           }
         }, 10000);
