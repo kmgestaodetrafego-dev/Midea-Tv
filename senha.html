@@ -63,7 +63,7 @@
   </div>
 
   <script>
-    // DEFINE A SUA SENHA DE ACESSO AQUI:
+    // SENHA DE ACESSO DO PAINEL
     const SENHA_CORRETA = "123456";
 
     document.getElementById('login-form').addEventListener('submit', (e) => {
@@ -71,9 +71,8 @@
       const senhaInput = document.getElementById('senha').value;
 
       if (senhaInput === SENHA_CORRETA) {
-        // Salva a sessão no navegador para liberar o acesso ao admin.html
         sessionStorage.setItem('admin_autenticado', 'true');
-        window.location.href = 'admin.html';
+        window.location.replace('./admin.html');
       } else {
         document.getElementById('error-msg').style.display = 'block';
       }
