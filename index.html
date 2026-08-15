@@ -23,12 +23,15 @@
       height: 100%;
       object-fit: contain;
       position: absolute;
-      top: 0; left: 0;
+      top: 0; 
+      left: 0;
       opacity: 0;
-      transition: opacity 1s ease-in-out; /* Transição suave de 1 segundo */
+      transition: opacity 1.2s ease-in-out; /* Transição suave de 1.2 segundos */
+      z-index: 1;
     }
     .media-element.active {
       opacity: 1;
+      z-index: 2;
     }
     #status-msg {
       color: #fff;
@@ -39,6 +42,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
+      z-index: 0;
     }
   </style>
 
@@ -101,45 +105,53 @@
       const duration = (parseInt(item.tempo, 10) || 10) * 1000;
       const finalUrl = formatUrl(item.url);
 
-      // Elemento antigo para animação de saída
-      const currentElement = container.querySelector('.media-element.active');
-
       let newElement;
+
       if (item.tipo === 'imagem') {
         newElement = document.createElement('img');
+        newElement.className = 'media-element';
         newElement.src = finalUrl;
+
+        newElement.onload = () => startTransition(newElement, duration);
+        newElement.onerror = () => nextMedia();
       } else {
         newElement = document.createElement('video');
+        newElement.className = 'media-element';
         newElement.src = finalUrl;
         newElement.autoplay = true;
         newElement.muted = true;
         newElement.playsInline = true;
+
+        newElement.oncanplay = () => startTransition(newElement, duration);
+        newElement.onerror = () => nextMedia();
       }
 
-      newElement.className = 'media-element';
-      newElement.onerror = () => nextMedia();
-
       container.appendChild(newElement);
+    }
 
-      // Ativa o esmaecimento de entrada (fade in)
-      setTimeout(() => {
+    function startTransition(newElement, duration) {
+      const currentElement = container.querySelector('.media-element.active');
+
+      // Aplica o Fade In
+      requestAnimationFrame(() => {
         newElement.classList.add('active');
-      }, 50);
+      });
 
-      // Remove o elemento antigo após o efeito terminar
+      // Remove o elemento anterior após concluir o fade (1.2 segundos)
       if (currentElement) {
         currentElement.classList.remove('active');
         setTimeout(() => {
           if (currentElement.parentNode === container) {
             container.removeChild(currentElement);
           }
-        }, 1000);
+        }, 1200);
       }
 
-      // Se houver mensagem de status residual, limpa ela
+      // Limpa mensagem de status se ainda existir
       const msg = document.getElementById('status-msg');
-      if (msg) msg.remove();
+      if (msg) msg.style.display = 'none';
 
+      // Agenda a próxima mídia
       timer = setTimeout(nextMedia, duration);
     }
 
