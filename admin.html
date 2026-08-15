@@ -3,84 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Admin - Controle por TV</title>
+  <title>Painel Admin - Controle de Mídias e TVs</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f4f6f9;
-      color: #333;
+      background-color: #f1f5f9;
+      color: #334155;
       padding: 20px;
     }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    h1, h2 {
+    .container { max-width: 900px; margin: 0 auto; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 20px;
-      color: #1a252f;
+    }
+    .btn-logout {
+      background-color: #64748b;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
     }
     .card {
       background: #fff;
       padding: 24px;
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      margin-bottom: 30px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
     }
-    .form-group {
-      margin-bottom: 16px;
-    }
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
+    h2 { margin-bottom: 15px; color: #0f172a; font-size: 1.25rem; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: 600; }
     input[type="text"], input[type="number"], select {
       width: 100%;
       padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
       font-size: 1rem;
     }
-    button {
-      background-color: #007bff;
+    .inline-form { display: flex; gap: 10px; }
+    .inline-form input { flex: 1; }
+    button.btn-primary {
+      background-color: #2563eb;
       color: white;
       border: none;
-      padding: 12px 20px;
+      padding: 12px;
+      border-radius: 6px;
       font-size: 1rem;
-      border-radius: 4px;
+      font-weight: bold;
       cursor: pointer;
       width: 100%;
-      font-weight: bold;
     }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .media-list {
-      list-style: none;
-    }
+    button.btn-primary:hover { background-color: #1d4ed8; }
+    .media-list { list-style: none; }
     .media-item {
       background: #fff;
-      border: 1px solid #e1e8ed;
+      border: 1px solid #e2e8f0;
       padding: 15px;
       border-radius: 6px;
       margin-bottom: 10px;
       display: flex;
       justify-content: space-between;
-      align-align: center;
+      align-items: center;
     }
-    .media-info {
-      max-width: 80%;
-    }
-    .media-info strong {
-      display: block;
-      color: #2c3e50;
-      word-break: break-all;
-    }
+    .media-info strong { display: block; color: #0f172a; word-break: break-all; }
     .badge {
       display: inline-block;
       padding: 3px 8px;
@@ -89,37 +78,55 @@
       background: #e2e8f0;
       color: #475569;
       margin-top: 5px;
+      margin-right: 5px;
     }
+    .badge-tv { background: #dbeafe; color: #1e40af; font-weight: bold; }
     .btn-delete {
-      background-color: #dc3545;
+      background-color: #ef4444;
       color: white;
       border: none;
       padding: 8px 12px;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 0.9rem;
-      width: auto;
-    }
-    .btn-delete:hover {
-      background-color: #c82333;
     }
   </style>
 
-  <!-- SDKs do Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="config.js"></script>
 </head>
 <body>
 
-  <div class="container">
-    <h1>Painel Administrativo</h1>
+  <script>
+    // Proteção de Rota: se não passou pela senha.html, redireciona
+    if (sessionStorage.getItem('admin_autenticado') !== 'true') {
+      window.location.href = 'senha.html';
+    }
+  </script>
 
+  <div class="container">
+    <div class="header">
+      <h1>Gerenciador de Mídias</h1>
+      <button class="btn-logout" onclick="logout()">Sair</button>
+    </div>
+
+    <!-- Seção 1: Cadastrar Nova TV -->
     <div class="card">
-      <h2>Cadastrar Nova Mídia</h2>
+      <h2>1. Cadastrar Nova TV</h2>
+      <form id="tv-form">
+        <div class="form-group inline-form">
+          <input type="text" id="nomeTv" placeholder="Ex: TV Recepção, TV Loja 01, TV Refeitório" required>
+          <button type="submit" class="btn-primary" style="width: auto; padding: 0 20px;">Adicionar TV</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Seção 2: Cadastrar Mídia -->
+    <div class="card">
+      <h2>2. Cadastrar Mídia na Playlist</h2>
       <form id="media-form">
         <div class="form-group">
-          <label for="url">URL da Mídia (Imagem ou Vídeo):</label>
+          <label for="url">URL da Mídia (Imagem ou Vídeo MP4):</label>
           <input type="text" id="url" placeholder="https://exemplo.com/imagem.jpg" required>
         </div>
 
@@ -127,7 +134,7 @@
           <label for="tipo">Tipo de Mídia:</label>
           <select id="tipo">
             <option value="imagem">Imagem</option>
-            <option value="video">Vídeo MP4 / HTML5</option>
+            <option value="video">Vídeo</option>
           </select>
         </div>
 
@@ -137,33 +144,57 @@
         </div>
 
         <div class="form-group">
-          <label for="tvAlvo">Exibir na TV:</label>
+          <label for="tvAlvo">Destino (Em qual TV vai passar?):</label>
           <select id="tvAlvo">
             <option value="todas">Todas as TVs</option>
-            <option value="tv-recepcao">TV 1 - Recepção</option>
-            <option value="tv-loja">TV 2 - Loja</option>
-            <option value="tv-refeitorio">TV 3 - Refeitório</option>
+            <!-- TVs cadastradas serão carregadas aqui automaticamente -->
           </select>
         </div>
 
-        <button type="submit">Cadastrar Mídia</button>
+        <button type="submit" class="btn-primary">Salvar Mídia</button>
       </form>
     </div>
 
+    <!-- Seção 3: Lista de Mídias Ativas -->
     <h2>Mídias Cadastradas</h2>
-    <ul id="media-list" class="media-list">
-      <!-- Mídias serão inseridas dinamicamente aqui -->
-    </ul>
+    <ul id="media-list" class="media-list"></ul>
   </div>
 
   <script>
-    const form = document.getElementById('media-form');
+    const tvSelect = document.getElementById('tvAlvo');
     const mediaListContainer = document.getElementById('media-list');
 
-    // Cadastrar mídia no Firebase
-    form.addEventListener('submit', (e) => {
+    // 1. Cadastrar Nova TV no Firebase
+    document.getElementById('tv-form').addEventListener('submit', (e) => {
       e.preventDefault();
+      const nomeTv = document.getElementById('nomeTv').value.trim();
+      const idTv = nomeTv.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
+      database.ref('tvs/' + idTv).set({
+        nome: nomeTv
+      }).then(() => {
+        alert('TV cadastrada com sucesso!');
+        document.getElementById('nomeTv').value = '';
+      });
+    });
+
+    // 2. Carregar Lista de TVs no <select>
+    database.ref('tvs').on('value', (snapshot) => {
+      tvSelect.innerHTML = '<option value="todas">Todas as TVs</option>';
+      const data = snapshot.val();
+      if (data) {
+        Object.keys(data).forEach(id => {
+          const option = document.createElement('option');
+          option.value = id;
+          option.textContent = data[id].nome;
+          tvSelect.appendChild(option);
+        });
+      }
+    });
+
+    // 3. Salvar Mídia no Firebase
+    document.getElementById('media-form').addEventListener('submit', (e) => {
+      e.preventDefault();
       const newMedia = {
         url: document.getElementById('url').value.trim(),
         tipo: document.getElementById('tipo').value,
@@ -171,24 +202,20 @@
         tvAlvo: document.getElementById('tvAlvo').value
       };
 
-      database.ref('playlist').push(newMedia)
-        .then(() => {
-          alert('Mídia cadastrada com sucesso!');
-          form.reset();
-          document.getElementById('tempo').value = 10;
-        })
-        .catch(err => {
-          alert('Erro ao salvar: ' + err.message);
-        });
+      database.ref('playlist').push(newMedia).then(() => {
+        alert('Mídia salva na playlist!');
+        document.getElementById('media-form').reset();
+        document.getElementById('tempo').value = 10;
+      });
     });
 
-    // Listar mídias cadastradas em tempo real
+    // 4. Listar Mídias com Botão de Excluir
     database.ref('playlist').on('value', (snapshot) => {
       mediaListContainer.innerHTML = '';
       const data = snapshot.val();
 
       if (!data) {
-        mediaListContainer.innerHTML = '<p>Nenhuma mídia cadastrada no momento.</p>';
+        mediaListContainer.innerHTML = '<p>Nenhuma mídia cadastrada.</p>';
         return;
       }
 
@@ -201,7 +228,7 @@
             <strong>${item.url}</strong>
             <span class="badge">Tipo: ${item.tipo}</span>
             <span class="badge">Tempo: ${item.tempo}s</span>
-            <span class="badge" style="background:#d1e7dd; color:#0f5132;">TV: ${item.tvAlvo || 'todas'}</span>
+            <span class="badge badge-tv">Destino: ${item.tvAlvo === 'todas' ? 'Todas as TVs' : item.tvAlvo}</span>
           </div>
           <button class="btn-delete" onclick="removerMidia('${key}')">Excluir</button>
         `;
@@ -209,12 +236,16 @@
       });
     });
 
-    // Função de exclusão
-    window.removerMidia = function(id) {
-      if (confirm('Deseja realmente remover esta mídia?')) {
+    function removerMidia(id) {
+      if (confirm('Deseja excluir esta mídia?')) {
         database.ref('playlist').child(id).remove();
       }
-    };
+    }
+
+    function logout() {
+      sessionStorage.removeItem('admin_autenticado');
+      window.location.href = 'senha.html';
+    }
   </script>
 </body>
 </html>
