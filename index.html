@@ -16,9 +16,6 @@
     #display-container {
       width: 100vw;
       height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       position: relative;
     }
     .media-element {
@@ -27,8 +24,22 @@
       object-fit: contain;
       position: absolute;
       top: 0; left: 0;
+      opacity: 0;
+      transition: opacity 1s ease-in-out; /* Transição suave de 1 segundo */
     }
-    #status-msg { color: #fff; font-size: 1.5rem; text-align: center; padding: 20px; }
+    .media-element.active {
+      opacity: 1;
+    }
+    #status-msg {
+      color: #fff;
+      font-size: 1.5rem;
+      text-align: center;
+      padding: 20px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
   </style>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -42,7 +53,6 @@
   </div>
 
   <script>
-    // Identifica qual TV é esta pelo parâmetro ?tv= na URL (Ex: index.html?tv=tv-recepcao)
     const urlParams = new URLSearchParams(window.location.search);
     const MINHA_TV_ID = urlParams.get('tv') || 'todas';
 
@@ -67,7 +77,6 @@
         const data = snapshot.val();
         const todasMidias = data ? Object.values(data) : [];
 
-        // Filtra para exibir mídias destinadas a TODAS as TVs ou para esta TV específica
         playlist = todasMidias.filter(item => {
           return !item.tvAlvo || item.tvAlvo === 'todas' || item.tvAlvo === MINHA_TV_ID;
         });
@@ -92,24 +101,44 @@
       const duration = (parseInt(item.tempo, 10) || 10) * 1000;
       const finalUrl = formatUrl(item.url);
 
-      container.innerHTML = '';
+      // Elemento antigo para animação de saída
+      const currentElement = container.querySelector('.media-element.active');
 
+      let newElement;
       if (item.tipo === 'imagem') {
-        const img = document.createElement('img');
-        img.className = 'media-element';
-        img.src = finalUrl;
-        img.onerror = () => nextMedia();
-        container.appendChild(img);
+        newElement = document.createElement('img');
+        newElement.src = finalUrl;
       } else {
-        const video = document.createElement('video');
-        video.className = 'media-element';
-        video.src = finalUrl;
-        video.autoplay = true;
-        video.muted = true;
-        video.playsInline = true;
-        video.onerror = () => nextMedia();
-        container.appendChild(video);
+        newElement = document.createElement('video');
+        newElement.src = finalUrl;
+        newElement.autoplay = true;
+        newElement.muted = true;
+        newElement.playsInline = true;
       }
+
+      newElement.className = 'media-element';
+      newElement.onerror = () => nextMedia();
+
+      container.appendChild(newElement);
+
+      // Ativa o esmaecimento de entrada (fade in)
+      setTimeout(() => {
+        newElement.classList.add('active');
+      }, 50);
+
+      // Remove o elemento antigo após o efeito terminar
+      if (currentElement) {
+        currentElement.classList.remove('active');
+        setTimeout(() => {
+          if (currentElement.parentNode === container) {
+            container.removeChild(currentElement);
+          }
+        }, 1000);
+      }
+
+      // Se houver mensagem de status residual, limpa ela
+      const msg = document.getElementById('status-msg');
+      if (msg) msg.remove();
 
       timer = setTimeout(nextMedia, duration);
     }
