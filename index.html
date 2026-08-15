@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Midea TV - Exibição de Mídias</title>
+  <title>Player da TV</title>
   <style>
     * {
       margin: 0;
@@ -17,7 +17,6 @@
       background-color: #000;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-
     #display-container {
       width: 100vw;
       height: 100vh;
@@ -25,9 +24,7 @@
       justify-content: center;
       align-items: center;
       position: relative;
-      background-color: #000;
     }
-
     .media-element {
       width: 100%;
       height: 100%;
@@ -37,29 +34,17 @@
       top: 0;
       left: 0;
     }
-
-    /* Animação Suave de Transição (Fade In) */
     .fade-in {
-      animation: fadeInEffect 1.2s ease-in-out forwards;
+      animation: fadeIn 0.8s ease-in-out forwards;
     }
-
-    @keyframes fadeInEffect {
-      0% {
-        opacity: 0;
-        transform: scale(1.02);
-      }
-      100% {
-        opacity: 1;
-        transform: scale(1);
-      }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
-
-    /* Mensagem de Status / Carregamento */
     #status-msg {
       color: #ffffff;
       font-size: 1.5rem;
       text-align: center;
-      z-index: 10;
       padding: 20px;
     }
   </style>
@@ -76,130 +61,105 @@
   </div>
 
   <script>
+    // 1. Identifica a TV a partir da URL (Exemplo: index.html?tv=tv-recepcao)
+    const urlParams = new URLSearchParams(window.location.search);
+    const MINHA_TV_ID = urlParams.get('tv') || 'todas';
+
     const container = document.getElementById('display-container');
     let playlist = [];
     let currentIndex = 0;
     let timer = null;
 
-    // --- Formatação Automática de Links (Dropbox e Google Drive) ---
+    // Tratamento de links (Dropbox e Google Drive)
     function formatUrl(url) {
       if (!url) return '';
-      
-      // Ajuste para Dropbox
-      if (url.includes('dropbox.com')) {
-        return url.replace('dl=0', 'raw=1').replace('dl=1', 'raw=1');
-      }
-      
-      // Ajuste para exibição/embed do Google Drive
-      if (url.includes('drive.google.com') && url.includes('/view')) {
-        return url.replace('/view', '/preview');
+      let clean = url.trim();
+
+      if (clean.includes('dropbox.com')) {
+        return clean.replace('dl=0', 'raw=1').replace('dl=1', 'raw=1');
       }
 
-      return url;
+      if (clean.includes('drive.google.com')) {
+        const match = clean.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+        }
+      }
+
+      return clean;
     }
 
-    // --- Conexão e Escuta do Firebase ---
+    // Conexão e sincronização com o Firebase Realtime Database
     if (typeof database !== 'undefined') {
-      
-      // Indicador de Presença Online
-      const myPresenceRef = database.ref('online_users').push();
-      myPresenceRef.set(true);
-      myPresenceRef.onDisconnect().remove();
-
-      // Atualização em tempo real da lista
       database.ref('playlist').on('value', (snapshot) => {
         const data = snapshot.val();
-        playlist = [];
+        const todasMidias = data ? Object.values(data) : [];
 
-        if (data) {
-          Object.keys(data).forEach(key => {
-            playlist.push(data[key]);
-          });
-        }
+        // Filtra mídias para 'todas' ou para a TV atual
+        playlist = todasMidias.filter(item => {
+          return !item.tvAlvo || item.tvAlvo === 'todas' || item.tvAlvo === MINHA_TV_ID;
+        });
 
         if (playlist.length > 0) {
-          if (currentIndex >= playlist.length) {
-            currentIndex = 0;
-          }
-          showCurrentMedia();
+          showMedia();
         } else {
           clearTimeout(timer);
-          container.innerHTML = '<div id="status-msg">Nenhuma mídia cadastrada no momento.</div>';
+          container.innerHTML = `<div id="status-msg">Nenhuma mídia agendada para este dispositivo (${MINHA_TV_ID}).</div>`;
         }
-      }, (error) => {
-        console.error("Erro ao ler do Firebase:", error);
-        container.innerHTML = '<div id="status-msg">Erro de conexão com o Firebase. Verifique o config.js</div>';
+      }, (err) => {
+        container.innerHTML = `<div id="status-msg">Erro de conexão: ${err.message}</div>`;
       });
-
     } else {
-      container.innerHTML = '<div id="status-msg">Erro: config.js não encontrado ou Firebase não configurado.</div>';
+      container.innerHTML = '<div id="status-msg">Erro: config.js não encontrado.</div>';
     }
 
-    // --- Exibição Principal com Animação Fade-In ---
-    function showCurrentMedia() {
+    // Exibição alternada das mídias
+    function showMedia() {
       clearTimeout(timer);
 
       if (playlist.length === 0) return;
 
-      const item = playlist[currentIndex];
-      const duration = (item.tempo || 10) * 1000;
-      const formattedUrl = formatUrl(item.url);
+      if (currentIndex >= playlist.length) {
+        currentIndex = 0;
+      }
 
-      // Limpa a tela
+      const item = playlist[currentIndex];
+      const duration = (parseInt(item.tempo, 10) || 10) * 1000;
+      const finalUrl = formatUrl(item.url);
+
       container.innerHTML = '';
 
       if (item.tipo === 'imagem') {
         const img = document.createElement('img');
-        img.src = formattedUrl;
         img.className = 'media-element fade-in';
-        img.alt = 'Mídia em exibição';
-        img.onerror = () => nextMedia();
+        img.src = finalUrl;
+        img.onerror = () => {
+          console.warn("Erro ao carregar mídia, avançando...", finalUrl);
+          nextMedia();
+        };
         container.appendChild(img);
 
       } else if (item.tipo === 'video') {
-        
-        // Se for YouTube ou Google Drive (Iframe)
-        if (formattedUrl.includes('youtube.com') || formattedUrl.includes('youtu.be') || formattedUrl.includes('drive.google.com')) {
-          const iframe = document.createElement('iframe');
-          iframe.src = formattedUrl;
-          iframe.className = 'media-element fade-in';
-          iframe.allow = "autoplay; encrypted-media; fullscreen";
-          iframe.allowFullscreen = true;
-          container.appendChild(iframe);
-
-        } else {
-          // Se for vídeo MP4 nativo / Dropbox
-          const video = document.createElement('video');
-          video.src = formattedUrl;
-          video.className = 'media-element fade-in';
-          video.autoplay = true;
-          video.muted = true; // Muted é obrigatório para Autoplay em navegadores
-          video.playsInline = true;
-          video.controls = false;
-
-          video.play().catch(err => {
-            console.warn("Autoplay bloqueado pelo navegador:", err);
-          });
-
-          video.onerror = () => {
-            console.error("Erro ao carregar o vídeo:", formattedUrl);
-            nextMedia();
-          };
-
-          container.appendChild(video);
-        }
+        const video = document.createElement('video');
+        video.src = finalUrl;
+        video.className = 'media-element fade-in';
+        video.autoplay = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.onerror = () => nextMedia();
+        container.appendChild(video);
       }
 
-      // Agendamento do tempo da próxima mídia
-      timer = setTimeout(() => {
-        nextMedia();
-      }, duration);
+      timer = setTimeout(nextMedia, duration);
     }
 
     function nextMedia() {
-      if (playlist.length === 0) return;
-      currentIndex = (currentIndex + 1) % playlist.length;
-      showCurrentMedia();
+      if (playlist.length > 0) {
+        currentIndex = (currentIndex + 1) % playlist.length;
+      } else {
+        currentIndex = 0;
+      }
+      showMedia();
     }
   </script>
 </body>
