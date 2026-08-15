@@ -3,178 +3,218 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel do Administrador</title>
+  <title>Painel Admin - Controle por TV</title>
   <style>
-    * { box-sizing: border-box; font-family: Arial, sans-serif; }
-    body { background-color: #f4f6f9; padding: 20px; margin: 0; }
-    .container { max-width: 800px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    h1, h2 { color: #333; }
-    .status-card { background: #e3f2fd; border-left: 5px solid #2196f3; padding: 15px; margin-bottom: 20px; border-radius: 4px; font-weight: bold; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 5px; font-weight: bold; }
-    input, select, button { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-    button { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
-    button:hover { background-color: #218838; }
-    .media-list { margin-top: 30px; }
-    .media-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px; border: 1px solid #ddd; margin-bottom: 10px; border-radius: 4px; }
-    .btn-delete { background-color: #dc3545; width: auto; padding: 6px 12px; }
-    .btn-delete:hover { background-color: #c82333; }
-    #login-box { max-width: 400px; margin: 100px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f9;
+      color: #333;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1, h2 {
+      margin-bottom: 20px;
+      color: #1a252f;
+    }
+    .card {
+      background: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .media-list {
+      list-style: none;
+    }
+    .media-item {
+      background: #fff;
+      border: 1px solid #e1e8ed;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-align: center;
+    }
+    .media-info {
+      max-width: 80%;
+    }
+    .media-info strong {
+      display: block;
+      color: #2c3e50;
+      word-break: break-all;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      background: #e2e8f0;
+      color: #475569;
+      margin-top: 5px;
+    }
+    .btn-delete {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      width: auto;
+    }
+    .btn-delete:hover {
+      background-color: #c82333;
+    }
   </style>
 
-  <!-- Firebase SDKs -->
+  <!-- SDKs do Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="config.js"></script>
 </head>
 <body>
 
-  <!-- LOGIN -->
-  <div id="login-box">
-    <h2>Login do Administrador</h2>
-    <div class="form-group">
-      <label>Senha de Acesso</label>
-      <input type="password" id="admin-pass" placeholder="Digite a senha (padrão: 1234)">
+  <div class="container">
+    <h1>Painel Administrativo</h1>
+
+    <div class="card">
+      <h2>Cadastrar Nova Mídia</h2>
+      <form id="media-form">
+        <div class="form-group">
+          <label for="url">URL da Mídia (Imagem ou Vídeo):</label>
+          <input type="text" id="url" placeholder="https://exemplo.com/imagem.jpg" required>
+        </div>
+
+        <div class="form-group">
+          <label for="tipo">Tipo de Mídia:</label>
+          <select id="tipo">
+            <option value="imagem">Imagem</option>
+            <option value="video">Vídeo MP4 / HTML5</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="tempo">Tempo de Exibição (em segundos):</label>
+          <input type="number" id="tempo" value="10" min="1" required>
+        </div>
+
+        <div class="form-group">
+          <label for="tvAlvo">Exibir na TV:</label>
+          <select id="tvAlvo">
+            <option value="todas">Todas as TVs</option>
+            <option value="tv-recepcao">TV 1 - Recepção</option>
+            <option value="tv-loja">TV 2 - Loja</option>
+            <option value="tv-refeitorio">TV 3 - Refeitório</option>
+          </select>
+        </div>
+
+        <button type="submit">Cadastrar Mídia</button>
+      </form>
     </div>
-    <button onclick="login()">Entrar</button>
-  </div>
 
-  <!-- CONTEÚDO DO PAINEL -->
-  <div class="container" id="admin-content" style="display: none;">
-    <h1>Painel de Controle</h1>
-    
-    <div class="status-card">
-      👥 Usuários Conectados Agora: <span id="online-count">0</span>
-    </div>
-
-    <h2>Adicionar Nova Mídia</h2>
-    <form id="media-form">
-      <div class="form-group">
-        <label>Link da Mídia (Dropbox, YouTube ou Imagem)</label>
-        <input type="url" id="drive-url" placeholder="https://www.dropbox.com/scl/fi/..." required>
-      </div>
-
-      <div class="form-group">
-        <label>Tipo de Mídia</label>
-        <select id="media-type">
-          <option value="imagem">Imagem</option>
-          <option value="video">Vídeo</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Tempo de Exibição (segundos)</label>
-        <input type="number" id="media-time" value="10" min="3" required>
-      </div>
-
-      <button type="submit">Cadastrar Mídia</button>
-    </form>
-
-    <div class="media-list">
-      <h2>Mídias Cadastradas</h2>
-      <div id="list-container">Carregando...</div>
-    </div>
+    <h2>Mídias Cadastradas</h2>
+    <ul id="media-list" class="media-list">
+      <!-- Mídias serão inseridas dinamicamente aqui -->
+    </ul>
   </div>
 
   <script>
-    const ADMIN_PASSWORD = "1234";
+    const form = document.getElementById('media-form');
+    const mediaListContainer = document.getElementById('media-list');
 
-    function login() {
-      const pass = document.getElementById('admin-pass').value;
-      if (pass === ADMIN_PASSWORD) {
-        document.getElementById('login-box').style.display = 'none';
-        document.getElementById('admin-content').style.display = 'block';
-        initAdmin();
-      } else {
-        alert("Senha incorreta!");
-      }
-    }
+    // Cadastrar mídia no Firebase
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
 
-    // Converte links para reprodução direta
-    function convertUrl(url, type) {
-      // 1. Trata links do Dropbox (Converte para link direto raw=1)
-      if (url.includes('dropbox.com')) {
-        let cleanUrl = url.replace('?dl=0', '').replace('&dl=0', '');
-        return cleanUrl.includes('?') ? `${cleanUrl}&raw=1` : `${cleanUrl}?raw=1`;
-      }
+      const newMedia = {
+        url: document.getElementById('url').value.trim(),
+        tipo: document.getElementById('tipo').value,
+        tempo: parseInt(document.getElementById('tempo').value, 10) || 10,
+        tvAlvo: document.getElementById('tvAlvo').value
+      };
 
-      // 2. Trata links do YouTube
-      if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        let videoId = "";
-        if (url.includes('youtu.be/')) {
-          videoId = url.split('youtu.be/')[1].split('?')[0];
-        } else if (url.includes('v=')) {
-          videoId = url.split('v=')[1].split('&')[0];
-        }
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`;
-      }
-
-      // 3. Trata links do Google Drive (Imagens / Preview)
-      const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)|id=([a-zA-Z0-9_-]+)/);
-      if (driveMatch) {
-        const fileId = driveMatch[1] || driveMatch[2];
-        return type === 'video' 
-          ? `https://drive.google.com/file/d/${fileId}/preview`
-          : `https://lh3.googleusercontent.com/d/${fileId}`;
-      }
-
-      return url;
-    }
-
-    function initAdmin() {
-      database.ref('online_users').on('value', (snapshot) => {
-        document.getElementById('online-count').innerText = snapshot.numChildren();
-      });
-
-      document.getElementById('media-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const rawUrl = document.getElementById('drive-url').value;
-        const type = document.getElementById('media-type').value;
-        const time = parseInt(document.getElementById('media-time').value);
-
-        const formattedUrl = convertUrl(rawUrl, type);
-
-        database.ref('playlist').push({
-          url: formattedUrl,
-          tipo: type,
-          tempo: time,
-          criadoEm: Date.now()
+      database.ref('playlist').push(newMedia)
+        .then(() => {
+          alert('Mídia cadastrada com sucesso!');
+          form.reset();
+          document.getElementById('tempo').value = 10;
+        })
+        .catch(err => {
+          alert('Erro ao salvar: ' + err.message);
         });
+    });
 
-        document.getElementById('media-form').reset();
+    // Listar mídias cadastradas em tempo real
+    database.ref('playlist').on('value', (snapshot) => {
+      mediaListContainer.innerHTML = '';
+      const data = snapshot.val();
+
+      if (!data) {
+        mediaListContainer.innerHTML = '<p>Nenhuma mídia cadastrada no momento.</p>';
+        return;
+      }
+
+      Object.keys(data).forEach(key => {
+        const item = data[key];
+        const li = document.createElement('li');
+        li.className = 'media-item';
+        li.innerHTML = `
+          <div class="media-info">
+            <strong>${item.url}</strong>
+            <span class="badge">Tipo: ${item.tipo}</span>
+            <span class="badge">Tempo: ${item.tempo}s</span>
+            <span class="badge" style="background:#d1e7dd; color:#0f5132;">TV: ${item.tvAlvo || 'todas'}</span>
+          </div>
+          <button class="btn-delete" onclick="removerMidia('${key}')">Excluir</button>
+        `;
+        mediaListContainer.appendChild(li);
       });
+    });
 
-      database.ref('playlist').on('value', (snapshot) => {
-        const data = snapshot.val();
-        const container = document.getElementById('list-container');
-        container.innerHTML = '';
-
-        if (!data) {
-          container.innerHTML = '<p>Nenhuma mídia cadastrada.</p>';
-          return;
-        }
-
-        Object.keys(data).forEach(key => {
-          const item = data[key];
-          const div = document.createElement('div');
-          div.className = 'media-item';
-          div.innerHTML = `
-            <div>
-              <strong>Tipo:</strong> ${item.tipo.toUpperCase()} | 
-              <strong>Tempo:</strong> ${item.tempo}s
-            </div>
-            <button class="btn-delete" onclick="deleteMedia('${key}')">Excluir</button>
-          `;
-          container.appendChild(div);
-        });
-      });
-    }
-
-    function deleteMedia(key) {
+    // Função de exclusão
+    window.removerMidia = function(id) {
       if (confirm('Deseja realmente remover esta mídia?')) {
-        database.ref('playlist/' + key).remove();
+        database.ref('playlist').child(id).remove();
       }
-    }
+    };
   </script>
 </body>
 </html>
