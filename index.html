@@ -28,10 +28,17 @@
       opacity: 0;
       transition: opacity 1.2s ease-in-out;
       z-index: 1;
+      pointer-events: none;
     }
+    /* Mídia ativa fica visível e por cima */
     .media-element.active {
       opacity: 1;
       z-index: 2;
+    }
+    /* Mídia em saída fica por baixo para não encobrir a nova */
+    .media-element.leaving {
+      opacity: 0;
+      z-index: 1;
     }
     #status-msg {
       color: #fff;
@@ -68,6 +75,7 @@
     let playlist = [];
     let currentIndex = 0;
     let timer = null;
+    let isTransitioning = false; // Trava para evitar disparos duplos
 
     // Converte links do Dropbox e Google Drive
     function formatUrl(url, tipo) {
@@ -111,7 +119,10 @@
         });
 
         if (playlist.length > 0) {
-          showMedia();
+          // Se for a primeira carga ou reconexão, reinicia limpo
+          if (!container.querySelector('.media-element')) {
+            showMedia();
+          }
         } else {
           clearTimeout(timer);
           statusMsg.style.display = 'block';
@@ -127,6 +138,7 @@
 
     function showMedia() {
       clearTimeout(timer);
+      isTransitioning = false;
 
       if (playlist.length === 0) return;
       if (currentIndex >= playlist.length) currentIndex = 0;
@@ -135,7 +147,7 @@
       const duration = (parseInt(item.tempo, 10) || 10) * 1000;
       const finalUrl = formatUrl(item.url, item.tipo);
 
-      console.log(`Exibindo [${item.tipo}]:`, finalUrl);
+      console.log(`Carregando [${item.tipo}]:`, finalUrl);
 
       let newElement;
 
@@ -146,7 +158,7 @@
         
         newElement.onload = () => startTransition(newElement, duration);
         newElement.onerror = () => {
-          console.error("Erro ao carregar imagem:", finalUrl);
+          console.error("Erro ao carregar imagem, avançando...", finalUrl);
           nextMedia();
         };
       } else {
@@ -165,7 +177,7 @@
             newElement.play().then(() => {
               startTransition(newElement, duration);
             }).catch((err) => {
-              console.warn("Autoplay bloqueado. Tentando modo mudo...", err);
+              console.warn("Autoplay bloqueado. Forçando modo mudo...", err);
               newElement.muted = true;
               newElement.play();
               startTransition(newElement, duration);
@@ -176,17 +188,17 @@
         newElement.oncanplaythrough = playVideo;
         newElement.onloadeddata = playVideo;
         
-        // Timeout de segurança caso o vídeo falhe ou demore demais
+        // Timeout de segurança para não travar o player se o vídeo demorar
         const videoTimeout = setTimeout(() => {
           if (!started) {
-            console.warn("Timeout de vídeo do Dropbox detectado. Pulando para a próxima mídia...");
+            console.warn("Timeout de carregamento de vídeo. Avançando...");
             nextMedia();
           }
-        }, 12000);
+        }, 10000);
 
-        newElement.onerror = (e) => {
+        newElement.onerror = () => {
           clearTimeout(videoTimeout);
-          console.error("Erro ao carregar vídeo (pulando):", finalUrl);
+          console.error("Erro ao carregar vídeo, avançando...", finalUrl);
           nextMedia();
         };
       }
@@ -195,16 +207,23 @@
     }
 
     function startTransition(newElement, duration) {
+      if (isTransitioning) return;
+      isTransitioning = true;
+
       const currentElement = container.querySelector('.media-element.active');
 
+      // Coloca a nova mídia por cima e ativa opacidade
       requestAnimationFrame(() => {
         newElement.classList.add('active');
       });
 
       if (currentElement) {
         currentElement.classList.remove('active');
+        currentElement.classList.add('leaving');
+
+        // Remove o elemento antigo do DOM somente APÓS a transição suave de 1.2s terminar
         setTimeout(() => {
-          if (currentElement.parentNode === container) {
+          if (currentElement && currentElement.parentNode === container) {
             if (currentElement.tagName === 'VIDEO') {
               currentElement.pause();
               currentElement.src = '';
@@ -212,14 +231,18 @@
             }
             container.removeChild(currentElement);
           }
-        }, 1200);
+        }, 1300);
       }
 
       statusMsg.style.display = 'none';
+
+      // Garante que não teremos múltiplos timers rodando em paralelo
+      clearTimeout(timer);
       timer = setTimeout(nextMedia, duration);
     }
 
     function nextMedia() {
+      clearTimeout(timer);
       if (playlist.length > 0) {
         currentIndex = (currentIndex + 1) % playlist.length;
       }
