@@ -228,24 +228,31 @@
     let inactiveLayer = layerB;
     let isTransitioning = false;
 
-    // --- CARREGADOR E ALTERNADOR DE FONTES DE NOTÍCIAS (ESPORTE & PARAIBA) ---
+    // --- SISTEMA DE PRESENÇA EM TEMPO REAL ---
+    if (typeof database !== 'undefined') {
+      const sessionKey = 'tv_' + MINHA_TV_ID + '_' + Math.random().toString(36).substr(2, 6);
+      const tvRef = database.ref('tvs_online/' + sessionKey);
+      const connectedRef = database.ref('.info/connected');
+
+      connectedRef.on('value', (snap) => {
+        if (snap.val() === true) {
+          tvRef.onDisconnect().remove();
+          tvRef.set({
+            id: MINHA_TV_ID,
+            url: window.location.href,
+            pagina: window.location.pathname + window.location.search,
+            ultimaConexao: firebase.database.ServerValue.TIMESTAMP
+          });
+        }
+      });
+    }
+
+    // --- CARREGADOR DE FONTES DE NOTÍCIAS ---
     const fontesNoticias = [
-      {
-        nome: "GE - Futebol",
-        url: "https://ge.globo.com/rss/ge/"
-      },
-      {
-        nome: "GE - Paraíba Esporte",
-        url: "https://ge.globo.com/rss/ge/pb/"
-      },
-      {
-        nome: "Jornal da Paraíba",
-        url: "https://www.jornaldaparaiba.com.br/feed/"
-      },
-      {
-        nome: "Portal T5 - Paraíba",
-        url: "https://www.portalt5.com.br/feed/"
-      }
+      { nome: "GE - Futebol", url: "https://ge.globo.com/rss/ge/" },
+      { nome: "GE - Paraíba Esporte", url: "https://ge.globo.com/rss/ge/pb/" },
+      { nome: "Jornal da Paraíba", url: "https://www.jornaldaparaiba.com.br/feed/" },
+      { nome: "Portal T5 - Paraíba", url: "https://www.portalt5.com.br/feed/" }
     ];
 
     let indiceFonteAtual = 0;
