@@ -57,30 +57,31 @@
       border-radius: 8px;
     }
 
-    /* BOTÃO DE TELA CHEIA */
+    /* BOTÃO DE TELA CHEIA COMPACTO E DISCRETO */
     #fullscreen-btn {
       position: fixed;
-      top: 15px;
-      right: 15px;
+      top: 10px;
+      right: 10px;
       z-index: 1000;
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
-      border: 2px solid rgba(255, 255, 255, 0.4);
-      border-radius: 50px;
-      padding: 8px 16px;
-      font-size: 0.9rem;
-      font-weight: bold;
+      background: rgba(0, 0, 0, 0.3);
+      color: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      font-size: 1rem;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
-      transition: all 0.3s ease;
-      backdrop-filter: blur(4px);
+      justify-content: center;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(2px);
     }
     #fullscreen-btn:hover {
-      background: #e50914;
+      background: rgba(229, 9, 20, 0.8);
+      color: #fff;
       border-color: #e50914;
-      transform: scale(1.05);
+      transform: scale(1.1);
     }
 
     /* BARRA DE NOTÍCIAS EM TEMPO REAL (TICKER) */
@@ -147,15 +148,15 @@
 </head>
 <body>
 
-  <!-- Botão de Tela Cheia -->
-  <button id="fullscreen-btn" onclick="toggleFullscreen()">
-    <span id="fs-icon">⛶</span> <span id="fs-text">Tela Cheia</span>
+  <!-- Botão de Tela Cheia Pequeno -->
+  <button id="fullscreen-btn" onclick="toggleFullscreen()" title="Alternar Tela Cheia">
+    <span id="fs-icon">⛶</span>
   </button>
 
   <div id="display-container">
     <div id="layer-a" class="layer"></div>
     <div id="layer-b" class="layer"></div>
-    <div id="status-msg">Carregando mídias... <br><small style="font-size:0.9rem; opacity:0.8;">Clique uma vez na tela para autorizar auto-fullscreen</small></div>
+    <div id="status-msg">Carregando mídias...</div>
   </div>
 
   <!-- Barra de Notícias -->
@@ -184,12 +185,10 @@
     }
 
     function toggleFullscreen() {
-      const fsBtnText = document.getElementById('fs-text');
       const fsIcon = document.getElementById('fs-icon');
 
       if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
         openFullscreen();
-        fsBtnText.innerText = 'Sair da Tela Cheia';
         fsIcon.innerText = '🗗';
       } else {
         if (document.exitFullscreen) {
@@ -199,20 +198,16 @@
         } else if (document.msExitFullscreen) {
           document.msExitFullscreen();
         }
-        fsBtnText.innerText = 'Tela Cheia';
         fsIcon.innerText = '⛶';
       }
     }
 
-    // Monitora saída manual da tela cheia pelo teclado (ESC)
+    // Monitora a troca do ícone ao entrar/sair da tela cheia
     document.addEventListener('fullscreenchange', () => {
-      const fsBtnText = document.getElementById('fs-text');
       const fsIcon = document.getElementById('fs-icon');
       if (!document.fullscreenElement) {
-        fsBtnText.innerText = 'Tela Cheia';
         fsIcon.innerText = '⛶';
       } else {
-        fsBtnText.innerText = 'Sair da Tela Cheia';
         fsIcon.innerText = '🗗';
       }
     });
@@ -403,604 +398,11 @@
 
       statusMsg.style.display = 'none';
 
-      // Dispara a exibição em tela cheia na primeira mídia exibida
+      // Auto-fullscreen ao carregar a primeira mídia
       if (!firstMediaLoaded) {
         firstMediaLoaded = true;
         openFullscreen();
       }
-
-      inactiveLayer.classList.add('active');
-      activeLayer.classList.remove('active');
-
-      const temp = activeLayer;
-      activeLayer = inactiveLayer;
-      inactiveLayer = temp;
-
-      setTimeout(() => {
-        const oldVideo = inactiveLayer.querySelector('video');
-        if (oldVideo) {
-          oldVideo.pause();
-          oldVideo.removeAttribute('src');
-          oldVideo.load();
-        }
-        inactiveLayer.innerHTML = '';
-      }, 1300);
-
-      clearTimeout(timer);
-      timer = setTimeout(nextMedia, duration);
-    }
-
-    function nextMedia() {
-      clearTimeout(timer);
-      if (playlist.length > 0) {
-        currentIndex = (currentIndex + 1) % playlist.length;
-      }
-      showMedia();
-    }
-  </script>
-</body>
-</html>
-      height: 100%;
-      display: flex;
-      align-items: center;
-      white-space: nowrap;
-      z-index: 101;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-      text-transform: uppercase;
-      transition: background-color 0.5s ease;
-    }
-    .news-ticker-wrapper {
-      flex: 1;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-    .news-ticker-text {
-      display: inline-block;
-      white-space: nowrap;
-      color: #fff;
-      font-size: 1.1rem;
-      padding-left: 100%;
-      animation: ticker 45s linear infinite;
-    }
-    .news-item {
-      display: inline-block;
-      margin-right: 50px;
-    }
-    .news-item span {
-      color: #ffcc00; /* Cor amarela para separar os títulos */
-      margin-right: 10px;
-    }
-
-    @keyframes ticker {
-      0% { transform: translate3d(0, 0, 0); }
-      100% { transform: translate3d(-100%, 0, 0); }
-    }
-  </style>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="config.js"></script>
-</head>
-<body>
-
-  <!-- Botão de Tela Cheia -->
-  <button id="fullscreen-btn" onclick="toggleFullscreen()">
-    <span id="fs-icon">⛶</span> <span id="fs-text">Tela Cheia</span>
-  </button>
-
-  <div id="display-container">
-    <div id="layer-a" class="layer"></div>
-    <div id="layer-b" class="layer"></div>
-    <div id="status-msg">Carregando mídias...</div>
-  </div>
-
-  <!-- Barra de Notícias -->
-  <div id="news-bar">
-    <div id="news-badge" class="news-badge">Notícias</div>
-    <div class="news-ticker-wrapper">
-      <div id="news-ticker" class="news-ticker-text">Carregando notícias em tempo real...</div>
-    </div>
-  </div>
-
-  <script>
-    // --- FUNÇÃO DE TELA CHEIA ---
-    function toggleFullscreen() {
-      const fsBtnText = document.getElementById('fs-text');
-      const fsIcon = document.getElementById('fs-icon');
-
-      if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-          elem.requestFullscreen();
-        } else if (elem.webkitRequestFullscreen) {
-          elem.webkitRequestFullscreen();
-        } else if (elem.msRequestFullscreen) {
-          elem.msRequestFullscreen();
-        }
-        fsBtnText.innerText = 'Sair da Tela Cheia';
-        fsIcon.innerText = '🗗';
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-          document.msExitFullscreen();
-        }
-        fsBtnText.innerText = 'Tela Cheia';
-        fsIcon.innerText = '⛶';
-      }
-    }
-
-    // Monitora se o usuário saiu da tela cheia pela tecla ESC do teclado
-    document.addEventListener('fullscreenchange', () => {
-      const fsBtnText = document.getElementById('fs-text');
-      const fsIcon = document.getElementById('fs-icon');
-      if (!document.fullscreenElement) {
-        fsBtnText.innerText = 'Tela Cheia';
-        fsIcon.innerText = '⛶';
-      }
-    });
-
-    // --- LÓGICA DO PLAYER E NOTÍCIAS ---
-    const urlParams = new URLSearchParams(window.location.search);
-    const MINHA_TV_ID = urlParams.get('tv') || 'todas';
-
-    const layerA = document.getElementById('layer-a');
-    const layerB = document.getElementById('layer-b');
-    const statusMsg = document.getElementById('status-msg');
-    const newsTicker = document.getElementById('news-ticker');
-    const newsBadge = document.getElementById('news-badge');
-
-    let playlist = [];
-    let currentIndex = 0;
-    let timer = null;
-    let activeLayer = layerA;
-    let inactiveLayer = layerB;
-    let isTransitioning = false;
-
-    // --- CARREGADOR E ALTERNADOR DE FONTES DE NOTÍCIAS ---
-    const fontesNoticias = [
-      {
-        nome: "G1 Notícias",
-        url: "https://g1.globo.com/dynamo/rss2.xml"
-      },
-      {
-        nome: "UOL Notícias",
-        url: "https://rss.uol.com.br/feed/noticias.xml"
-      },
-      {
-        nome: "BBC Brasil",
-        url: "https://feeds.bbci.co.uk/portuguese/rss.xml"
-      }
-    ];
-
-    let indiceFonteAtual = 0;
-
-    function fetchNews() {
-      const fonte = fontesNoticias[indiceFonteAtual];
-      const rssUrl = encodeURIComponent(fonte.url);
-      const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`;
-
-      newsBadge.innerText = fonte.nome;
-
-      fetch(apiUrl)
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'ok' && data.items && data.items.length > 0) {
-            const htmlNoticias = data.items.slice(0, 10).map(item => {
-              return `<div class="news-item"><span>●</span> ${item.title}</div>`;
-            }).join('');
-            
-            newsTicker.style.animation = 'none';
-            newsTicker.offsetHeight;
-            newsTicker.style.animation = 'ticker 45s linear infinite';
-
-            newsTicker.innerHTML = htmlNoticias;
-          }
-        })
-        .catch(err => {
-          console.warn(`Erro ao carregar notícias de ${fonte.nome}:`, err);
-        });
-
-      indiceFonteAtual = (indiceFonteAtual + 1) % fontesNoticias.length;
-    }
-
-    fetchNews();
-    setInterval(fetchNews, 2 * 60 * 1000);
-
-    // --- LÓGICA DO PLAYER ---
-    function formatUrl(url, tipo) {
-      if (!url) return '';
-      let clean = url.trim();
-
-      if (clean.includes('dropbox.com') || clean.includes('dropboxusercontent.com')) {
-        try {
-          let parsedUrl = new URL(clean);
-          parsedUrl.hostname = 'dl.dropboxusercontent.com';
-          parsedUrl.searchParams.set('raw', '1');
-          parsedUrl.searchParams.delete('dl');
-          return parsedUrl.toString();
-        } catch (e) {
-          return clean;
-        }
-      }
-
-      if (clean.includes('drive.google.com') || clean.includes('docs.google.com')) {
-        const idMatch = clean.match(/\/d\/([a-zA-Z0-9_-]+)/) || clean.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-        if (idMatch && idMatch[1]) {
-          const id = idMatch[1];
-          return tipo === 'imagem' 
-            ? `https://lh3.googleusercontent.com/d/${id}`
-            : `https://docs.google.com/uc?export=download&id=${id}`;
-        }
-      }
-
-      return clean;
-    }
-
-    if (typeof database !== 'undefined') {
-      database.ref('playlist').on('value', (snapshot) => {
-        const data = snapshot.val();
-        const todasMidias = data ? Object.values(data) : [];
-
-        playlist = todasMidias.filter(item => {
-          return !item.tvAlvo || item.tvAlvo === 'todas' || item.tvAlvo === MINHA_TV_ID;
-        });
-
-        if (playlist.length > 0) {
-          if (!activeLayer.children.length && !inactiveLayer.children.length) {
-            showMedia();
-          }
-        } else {
-          clearTimeout(timer);
-          statusMsg.style.display = 'block';
-          statusMsg.innerText = `Nenhuma mídia agendada para esta TV (${MINHA_TV_ID}).`;
-        }
-      }, (error) => {
-        console.error("Erro no Firebase Database:", error);
-        statusMsg.innerText = "Erro ao carregar dados do Firebase.";
-      });
-    } else {
-      statusMsg.innerText = "Erro: arquivo config.js não encontrado.";
-    }
-
-    function showMedia() {
-      clearTimeout(timer);
-      isTransitioning = false;
-
-      if (playlist.length === 0) return;
-      if (currentIndex >= playlist.length) currentIndex = 0;
-
-      const item = playlist[currentIndex];
-      const duration = (parseInt(item.tempo, 10) || 10) * 1000;
-      const finalUrl = formatUrl(item.url, item.tipo);
-
-      inactiveLayer.innerHTML = '';
-      let newElement;
-
-      if (item.tipo === 'imagem') {
-        newElement = document.createElement('img');
-        newElement.src = finalUrl;
-        
-        newElement.onload = () => switchLayers(newElement, duration);
-        newElement.onerror = () => nextMedia();
-        inactiveLayer.appendChild(newElement);
-
-      } else {
-        newElement = document.createElement('video');
-        newElement.muted = true;
-        newElement.defaultMuted = true;
-        newElement.setAttribute('muted', '');
-        newElement.setAttribute('playsinline', '');
-        newElement.setAttribute('webkit-playsinline', '');
-        newElement.autoplay = true;
-        newElement.preload = 'auto';
-
-        let started = false;
-
-        const startPlayback = () => {
-          if (started) return;
-          started = true;
-
-          const playPromise = newElement.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              switchLayers(newElement, duration);
-            }).catch(() => {
-              newElement.muted = true;
-              newElement.play().then(() => {
-                switchLayers(newElement, duration);
-              }).catch(() => nextMedia());
-            });
-          } else {
-            switchLayers(newElement, duration);
-          }
-        };
-
-        newElement.onloadeddata = startPlayback;
-        newElement.oncanplay = startPlayback;
-        newElement.onerror = () => nextMedia();
-
-        newElement.src = finalUrl;
-        inactiveLayer.appendChild(newElement);
-
-        setTimeout(() => {
-          if (!started) nextMedia();
-        }, 12000);
-      }
-    }
-
-    function switchLayers(newElement, duration) {
-      if (isTransitioning) return;
-      isTransitioning = true;
-
-      statusMsg.style.display = 'none';
-
-      inactiveLayer.classList.add('active');
-      activeLayer.classList.remove('active');
-
-      const temp = activeLayer;
-      activeLayer = inactiveLayer;
-      inactiveLayer = temp;
-
-      setTimeout(() => {
-        const oldVideo = inactiveLayer.querySelector('video');
-        if (oldVideo) {
-          oldVideo.pause();
-          oldVideo.removeAttribute('src');
-          oldVideo.load();
-        }
-        inactiveLayer.innerHTML = '';
-      }, 1300);
-
-      clearTimeout(timer);
-      timer = setTimeout(nextMedia, duration);
-    }
-
-    function nextMedia() {
-      clearTimeout(timer);
-      if (playlist.length > 0) {
-        currentIndex = (currentIndex + 1) % playlist.length;
-      }
-      showMedia();
-    }
-  </script>
-</body>
-</html>
-    .news-item span {
-      color: #ffcc00; /* Cor amarela para separar os títulos */
-      margin-right: 10px;
-    }
-
-    @keyframes ticker {
-      0% { transform: translate3d(0, 0, 0); }
-      100% { transform: translate3d(-100%, 0, 0); }
-    }
-  </style>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="config.js"></script>
-</head>
-<body>
-
-  <div id="display-container">
-    <div id="layer-a" class="layer"></div>
-    <div id="layer-b" class="layer"></div>
-    <div id="status-msg">Carregando mídias...</div>
-  </div>
-
-  <!-- Barra de Notícias -->
-  <div id="news-bar">
-    <div id="news-badge" class="news-badge">Notícias</div>
-    <div class="news-ticker-wrapper">
-      <div id="news-ticker" class="news-ticker-text">Carregando notícias em tempo real...</div>
-    </div>
-  </div>
-
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const MINHA_TV_ID = urlParams.get('tv') || 'todas';
-
-    const layerA = document.getElementById('layer-a');
-    const layerB = document.getElementById('layer-b');
-    const statusMsg = document.getElementById('status-msg');
-    const newsTicker = document.getElementById('news-ticker');
-    const newsBadge = document.getElementById('news-badge');
-
-    let playlist = [];
-    let currentIndex = 0;
-    let timer = null;
-    let activeLayer = layerA;
-    let inactiveLayer = layerB;
-    let isTransitioning = false;
-
-    // --- CARREGADOR E ALTERNADOR DE FONTES DE NOTÍCIAS ---
-    const fontesNoticias = [
-      {
-        nome: "G1 Notícias",
-        url: "https://g1.globo.com/dynamo/rss2.xml"
-      },
-      {
-        nome: "UOL Notícias",
-        url: "https://rss.uol.com.br/feed/noticias.xml"
-      },
-      {
-        nome: "BBC Brasil",
-        url: "https://feeds.bbci.co.uk/portuguese/rss.xml"
-      }
-    ];
-
-    let indiceFonteAtual = 0;
-
-    function fetchNews() {
-      const fonte = fontesNoticias[indiceFonteAtual];
-      const rssUrl = encodeURIComponent(fonte.url);
-      const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`;
-
-      // Atualiza a etiqueta do portal na tela
-      newsBadge.innerText = fonte.nome;
-
-      fetch(apiUrl)
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'ok' && data.items && data.items.length > 0) {
-            const htmlNoticias = data.items.slice(0, 10).map(item => {
-              return `<div class="news-item"><span>●</span> ${item.title}</div>`;
-            }).join('');
-            
-            // Reinicia a animação CSS para a nova transmissão
-            newsTicker.style.animation = 'none';
-            newsTicker.offsetHeight; // Força reflow no navegador
-            newsTicker.style.animation = 'ticker 45s linear infinite';
-
-            newsTicker.innerHTML = htmlNoticias;
-          }
-        })
-        .catch(err => {
-          console.warn(`Erro ao carregar notícias de ${fonte.nome}:`, err);
-        });
-
-      // Alterna para a próxima fonte na fila
-      indiceFonteAtual = (indiceFonteAtual + 1) % fontesNoticias.length;
-    }
-
-    // Busca imediatamente a primeira fonte
-    fetchNews();
-
-    // Alterna a fonte de notícias a cada 2 minutos (120.000 ms)
-    setInterval(fetchNews, 2 * 60 * 1000);
-
-    // --- LÓGICA DO PLAYER ---
-    function formatUrl(url, tipo) {
-      if (!url) return '';
-      let clean = url.trim();
-
-      if (clean.includes('dropbox.com') || clean.includes('dropboxusercontent.com')) {
-        try {
-          let parsedUrl = new URL(clean);
-          parsedUrl.hostname = 'dl.dropboxusercontent.com';
-          parsedUrl.searchParams.set('raw', '1');
-          parsedUrl.searchParams.delete('dl');
-          return parsedUrl.toString();
-        } catch (e) {
-          return clean;
-        }
-      }
-
-      if (clean.includes('drive.google.com') || clean.includes('docs.google.com')) {
-        const idMatch = clean.match(/\/d\/([a-zA-Z0-9_-]+)/) || clean.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-        if (idMatch && idMatch[1]) {
-          const id = idMatch[1];
-          return tipo === 'imagem' 
-            ? `https://lh3.googleusercontent.com/d/${id}`
-            : `https://docs.google.com/uc?export=download&id=${id}`;
-        }
-      }
-
-      return clean;
-    }
-
-    if (typeof database !== 'undefined') {
-      database.ref('playlist').on('value', (snapshot) => {
-        const data = snapshot.val();
-        const todasMidias = data ? Object.values(data) : [];
-
-        playlist = todasMidias.filter(item => {
-          return !item.tvAlvo || item.tvAlvo === 'todas' || item.tvAlvo === MINHA_TV_ID;
-        });
-
-        if (playlist.length > 0) {
-          if (!activeLayer.children.length && !inactiveLayer.children.length) {
-            showMedia();
-          }
-        } else {
-          clearTimeout(timer);
-          statusMsg.style.display = 'block';
-          statusMsg.innerText = `Nenhuma mídia agendada para esta TV (${MINHA_TV_ID}).`;
-        }
-      }, (error) => {
-        console.error("Erro no Firebase Database:", error);
-        statusMsg.innerText = "Erro ao carregar dados do Firebase.";
-      });
-    } else {
-      statusMsg.innerText = "Erro: arquivo config.js não encontrado.";
-    }
-
-    function showMedia() {
-      clearTimeout(timer);
-      isTransitioning = false;
-
-      if (playlist.length === 0) return;
-      if (currentIndex >= playlist.length) currentIndex = 0;
-
-      const item = playlist[currentIndex];
-      const duration = (parseInt(item.tempo, 10) || 10) * 1000;
-      const finalUrl = formatUrl(item.url, item.tipo);
-
-      inactiveLayer.innerHTML = '';
-      let newElement;
-
-      if (item.tipo === 'imagem') {
-        newElement = document.createElement('img');
-        newElement.src = finalUrl;
-        
-        newElement.onload = () => switchLayers(newElement, duration);
-        newElement.onerror = () => nextMedia();
-        inactiveLayer.appendChild(newElement);
-
-      } else {
-        newElement = document.createElement('video');
-        newElement.muted = true;
-        newElement.defaultMuted = true;
-        newElement.setAttribute('muted', '');
-        newElement.setAttribute('playsinline', '');
-        newElement.setAttribute('webkit-playsinline', '');
-        newElement.autoplay = true;
-        newElement.preload = 'auto';
-
-        let started = false;
-
-        const startPlayback = () => {
-          if (started) return;
-          started = true;
-
-          const playPromise = newElement.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              switchLayers(newElement, duration);
-            }).catch(() => {
-              newElement.muted = true;
-              newElement.play().then(() => {
-                switchLayers(newElement, duration);
-              }).catch(() => nextMedia());
-            });
-          } else {
-            switchLayers(newElement, duration);
-          }
-        };
-
-        newElement.onloadeddata = startPlayback;
-        newElement.oncanplay = startPlayback;
-        newElement.onerror = () => nextMedia();
-
-        newElement.src = finalUrl;
-        inactiveLayer.appendChild(newElement);
-
-        setTimeout(() => {
-          if (!started) nextMedia();
-        }, 12000);
-      }
-    }
-
-    function switchLayers(newElement, duration) {
-      if (isTransitioning) return;
-      isTransitioning = true;
-
-      statusMsg.style.display = 'none';
 
       inactiveLayer.classList.add('active');
       activeLayer.classList.remove('active');
