@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gerenciador de TV Mídia</title>
+  <title>Painel Master - Gerenciador Midea TV</title>
   <style>
     * { 
       margin: 0; 
@@ -16,12 +16,99 @@
       color: #e0e0e0;
       padding: 20px;
     }
+
+    /* --- TELA DE LOGIN / AUTENTICAÇÃO --- */
+    #login-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #0d0d0d;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-box {
+      background: #1e1e1e;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      border: 1px solid #333;
+    }
+    .login-box h2 {
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .login-box p {
+      color: #aaa;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+    .login-box input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      background: #2a2a2a;
+      color: #fff;
+      font-size: 1rem;
+      text-align: center;
+    }
+    .login-box button {
+      width: 100%;
+      padding: 12px;
+      background: #e50914;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .login-box button:hover {
+      background: #b80710;
+    }
+    #error-msg {
+      color: #ff4d4d;
+      font-size: 0.85rem;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* --- LAYOUT DO PAINEL ADMIN --- */
     .container {
       max-width: 1000px;
       margin: 0 auto;
+      display: none; /* Oculto até realizar o login */
+    }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
     }
     h1 {
-      margin-bottom: 20px;
+      color: #fff;
+      font-size: 1.8rem;
+    }
+    .btn-logout {
+      background: #333;
+      color: #ccc;
+      border: 1px solid #555;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-logout:hover {
+      background: #444;
       color: #fff;
     }
     .card {
@@ -30,6 +117,7 @@
       border-radius: 8px;
       margin-bottom: 20px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      border: 1px solid #2a2a2a;
     }
     .card h2 {
       margin-bottom: 15px;
@@ -54,7 +142,7 @@
       color: #fff;
       font-size: 1rem;
     }
-    button {
+    .btn-primary {
       background: #e50914;
       color: #fff;
       border: none;
@@ -65,7 +153,7 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    button:hover {
+    .btn-primary:hover {
       background: #b80710;
     }
     table {
@@ -86,8 +174,12 @@
     }
     .btn-delete {
       background: #d32f2f;
+      color: #fff;
+      border: none;
       padding: 6px 12px;
       font-size: 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
     }
     .btn-delete:hover {
       background: #9a0007;
@@ -100,15 +192,6 @@
       font-size: 0.85rem;
       font-weight: bold;
     }
-    .link-site {
-      color: #00bfff;
-      text-decoration: none;
-      font-family: monospace;
-      font-size: 0.9rem;
-    }
-    .link-site:hover {
-      text-decoration: underline;
-    }
   </style>
 
   <!-- Firebase -->
@@ -118,8 +201,25 @@
 </head>
 <body>
 
-  <div class="container">
-    <h1>Gerenciador de TV Mídia</h1>
+  <!-- TELA DE LOGIN POR SENHA -->
+  <div id="login-screen">
+    <div class="login-box">
+      <h2>Acesso Master</h2>
+      <p>Digite a senha para acessar o painel</p>
+      <form id="login-form">
+        <input type="password" id="admin-password" placeholder="Sua Senha" required autofocus>
+        <button type="submit">Entrar</button>
+      </form>
+      <div id="error-msg">Senha incorreta. Tente novamente.</div>
+    </div>
+  </div>
+
+  <!-- CONTEÚDO PRINCIPAL DO PAINEL ADMIN -->
+  <div class="container" id="admin-container">
+    <div class="header-bar">
+      <h1>Painel Master - Gerenciador de TVs</h1>
+      <button class="btn-logout" onclick="logout()">Sair</button>
+    </div>
 
     <!-- MONITOR DE TVS ONLINE -->
     <div class="card">
@@ -132,14 +232,13 @@
         <thead>
           <tr>
             <th>ID da TV</th>
-            <th>Página / Parâmetros</th>
-            <th>URL Completa do Site</th>
+            <th>Página / URL</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody id="tabela-tvs-online">
           <tr>
-            <td colspan="4" style="text-align: center; color: #888;">Buscando TVs conectadas...</td>
+            <td colspan="3" style="text-align: center; color: #888;">Buscando TVs conectadas...</td>
           </tr>
         </tbody>
       </table>
@@ -172,7 +271,7 @@
           <input type="text" id="tvAlvo" value="todas" placeholder="ex: todas, recepcao, sala1">
         </div>
 
-        <button type="submit">Cadastrar Mídia</button>
+        <button type="submit" class="btn-primary">Cadastrar Mídia</button>
       </form>
     </div>
 
@@ -199,84 +298,120 @@
   </div>
 
   <script>
-    const mediaForm = document.getElementById('media-form');
-    const playlistTable = document.getElementById('playlist-table');
-    const tabelaTvsOnline = document.getElementById('tabela-tvs-online');
-    const totalTvsOnline = document.getElementById('total-tvs-online');
+    // --- DEFINIÇÃO DA SENHA DO PAINEL ---
+    // Mude a senha abaixo para a sua de preferência
+    const SENHA_MESTER = "admin123";
 
-    // MONITORAR TVS ONLINE
-    if (typeof database !== 'undefined') {
-      database.ref('tvs_online').on('value', (snapshot) => {
-        const tvs = snapshot.val();
+    const loginScreen = document.getElementById('login-screen');
+    const adminContainer = document.getElementById('admin-container');
+    const loginForm = document.getElementById('login-form');
+    const adminPasswordInput = document.getElementById('admin-password');
+    const errorMsg = document.getElementById('error-msg');
 
-        if (!tvs) {
-          totalTvsOnline.innerText = '0';
-          tabelaTvsOnline.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #888;">Nenhuma TV conectada no momento.</td></tr>';
-          return;
-        }
+    // Valida a sessão ativa ao carregar a página
+    if (sessionStorage.getItem('master_auth') === 'true') {
+      exibirPainel();
+    }
 
-        const listaTvs = Object.values(tvs);
-        totalTvsOnline.innerText = listaTvs.length;
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (adminPasswordInput.value === SENHA_MESTER) {
+        sessionStorage.setItem('master_auth', 'true');
+        exibirPainel();
+      } else {
+        errorMsg.style.display = 'block';
+        adminPasswordInput.value = '';
+        adminPasswordInput.focus();
+      }
+    });
 
-        tabelaTvsOnline.innerHTML = listaTvs.map(tv => `
-          <tr>
-            <td style="font-weight: bold; color: #fff;">${tv.id}</td>
-            <td style="color: #ffcc00; font-family: monospace;">${tv.pagina}</td>
-            <td>
-              <a href="${tv.urlCompleta}" target="_blank" class="link-site">
-                ${tv.urlCompleta}
-              </a>
-            </td>
-            <td><span class="badge-online">Online</span></td>
-          </tr>
-        `).join('');
-      });
+    function exibirPainel() {
+      loginScreen.style.display = 'none';
+      adminContainer.style.display = 'block';
+      iniciarFirebaseAdmin();
+    }
 
-      // CADASTRAR NOVA MÍDIA
-      mediaForm.addEventListener('submit', (e) => {
-        e.preventDefault();
+    function logout() {
+      sessionStorage.removeItem('master_auth');
+      window.location.reload();
+    }
 
-        const newMedia = {
-          url: document.getElementById('url').value,
-          tipo: document.getElementById('tipo').value,
-          tempo: document.getElementById('tempo').value,
-          tvAlvo: document.getElementById('tvAlvo').value || 'todas',
-          criadoEm: firebase.database.ServerValue.TIMESTAMP
-        };
+    // --- LÓGICA DO FIREBASE ADMIN ---
+    function iniciarFirebaseAdmin() {
+      const mediaForm = document.getElementById('media-form');
+      const playlistTable = document.getElementById('playlist-table');
+      const tabelaTvsOnline = document.getElementById('tabela-tvs-online');
+      const totalTvsOnline = document.getElementById('total-tvs-online');
 
-        database.ref('playlist').push(newMedia).then(() => {
-          mediaForm.reset();
-          document.getElementById('tempo').value = 10;
-          document.getElementById('tvAlvo').value = 'todas';
+      if (typeof database !== 'undefined') {
+        // --- MONITORAR TVS ONLINE ---
+        database.ref('tvs_online').on('value', (snapshot) => {
+          const tvs = snapshot.val();
+
+          if (!tvs) {
+            totalTvsOnline.innerText = '0';
+            tabelaTvsOnline.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #888;">Nenhuma TV conectada no momento.</td></tr>';
+            return;
+          }
+
+          const listaTvs = Object.values(tvs);
+          totalTvsOnline.innerText = listaTvs.length;
+
+          tabelaTvsOnline.innerHTML = listaTvs.map(tv => `
+            <tr>
+              <td style="font-weight: bold; color: #fff;">${tv.id}</td>
+              <td style="color: #00bfff; font-family: monospace;">${tv.pagina || tv.url}</td>
+              <td><span class="badge-online">Online</span></td>
+            </tr>
+          `).join('');
         });
-      });
 
-      // LISTAR MÍDIAS CADASTRADAS
-      database.ref('playlist').on('value', (snapshot) => {
-        const data = snapshot.val();
-        playlistTable.innerHTML = '';
+        // --- CADASTRAR NOVA MÍDIA ---
+        mediaForm.addEventListener('submit', (e) => {
+          e.preventDefault();
 
-        if (!data) {
-          playlistTable.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888;">Nenhuma mídia cadastrada.</td></tr>';
-          return;
-        }
+          const newMedia = {
+            url: document.getElementById('url').value,
+            tipo: document.getElementById('tipo').value,
+            tempo: document.getElementById('tempo').value,
+            tvAlvo: document.getElementById('tvAlvo').value || 'todas',
+            criadoEm: firebase.database.ServerValue.TIMESTAMP
+          };
 
-        Object.keys(data).forEach(key => {
-          const item = data[key];
-          const tr = document.createElement('tr');
-
-          tr.innerHTML = `
-            <td style="text-transform: capitalize;">${item.tipo}</td>
-            <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.url}</td>
-            <td>${item.tempo}s</td>
-            <td>${item.tvAlvo || 'todas'}</td>
-            <td>
-              <button class="btn-delete" onclick="removerMidia('${key}')">Excluir</button>
-            </td>
-          `;
-          playlistTable.appendChild(tr);
+          database.ref('playlist').push(newMedia).then(() => {
+            mediaForm.reset();
+            document.getElementById('tempo').value = 10;
+            document.getElementById('tvAlvo').value = 'todas';
+          });
         });
-      });
+
+        // --- LISTAR MÍDIAS CADASTRADAS ---
+        database.ref('playlist').on('value', (snapshot) => {
+          const data = snapshot.val();
+          playlistTable.innerHTML = '';
+
+          if (!data) {
+            playlistTable.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888;">Nenhuma mídia cadastrada.</td></tr>';
+            return;
+          }
+
+          Object.keys(data).forEach(key => {
+            const item = data[key];
+            const tr = document.createElement('tr');
+
+            tr.innerHTML = `
+              <td style="text-transform: capitalize;">${item.tipo}</td>
+              <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.url}</td>
+              <td>${item.tempo}s</td>
+              <td>${item.tvAlvo || 'todas'}</td>
+              <td>
+                <button class="btn-delete" onclick="removerMidia('${key}')">Excluir</button>
+              </td>
+            `;
+            playlistTable.appendChild(tr);
+          });
+        });
+      }
     }
 
     function removerMidia(id) {
