@@ -100,6 +100,15 @@
       font-size: 0.85rem;
       font-weight: bold;
     }
+    .link-site {
+      color: #00bfff;
+      text-decoration: none;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+    .link-site:hover {
+      text-decoration: underline;
+    }
   </style>
 
   <!-- Firebase -->
@@ -123,13 +132,14 @@
         <thead>
           <tr>
             <th>ID da TV</th>
-            <th>Página / URL</th>
+            <th>Página / Parâmetros</th>
+            <th>URL Completa do Site</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody id="tabela-tvs-online">
           <tr>
-            <td colspan="3" style="text-align: center; color: #888;">Buscando TVs conectadas...</td>
+            <td colspan="4" style="text-align: center; color: #888;">Buscando TVs conectadas...</td>
           </tr>
         </tbody>
       </table>
@@ -194,14 +204,14 @@
     const tabelaTvsOnline = document.getElementById('tabela-tvs-online');
     const totalTvsOnline = document.getElementById('total-tvs-online');
 
-    // --- MONITORAR TVS ONLINE ---
+    // MONITORAR TVS ONLINE
     if (typeof database !== 'undefined') {
       database.ref('tvs_online').on('value', (snapshot) => {
         const tvs = snapshot.val();
 
         if (!tvs) {
           totalTvsOnline.innerText = '0';
-          tabelaTvsOnline.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #888;">Nenhuma TV conectada no momento.</td></tr>';
+          tabelaTvsOnline.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #888;">Nenhuma TV conectada no momento.</td></tr>';
           return;
         }
 
@@ -211,13 +221,18 @@
         tabelaTvsOnline.innerHTML = listaTvs.map(tv => `
           <tr>
             <td style="font-weight: bold; color: #fff;">${tv.id}</td>
-            <td style="color: #00bfff; font-family: monospace;">${tv.pagina || tv.url}</td>
+            <td style="color: #ffcc00; font-family: monospace;">${tv.pagina}</td>
+            <td>
+              <a href="${tv.urlCompleta}" target="_blank" class="link-site">
+                ${tv.urlCompleta}
+              </a>
+            </td>
             <td><span class="badge-online">Online</span></td>
           </tr>
         `).join('');
       });
 
-      // --- CADASTRAR NOVA MÍDIA ---
+      // CADASTRAR NOVA MÍDIA
       mediaForm.addEventListener('submit', (e) => {
         e.preventDefault();
 
@@ -236,7 +251,7 @@
         });
       });
 
-      // --- LISTAR MÍDIAS CADASTRADAS ---
+      // LISTAR MÍDIAS CADASTRADAS
       database.ref('playlist').on('value', (snapshot) => {
         const data = snapshot.val();
         playlistTable.innerHTML = '';
