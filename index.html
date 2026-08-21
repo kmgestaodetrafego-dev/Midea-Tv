@@ -161,9 +161,9 @@
 
   <!-- Barra de Notícias -->
   <div id="news-bar">
-    <div id="news-badge" class="news-badge">Notícias</div>
+    <div id="news-badge" class="news-badge">Esporte & PB</div>
     <div class="news-ticker-wrapper">
-      <div id="news-ticker" class="news-ticker-text">Carregando notícias em tempo real...</div>
+      <div id="news-ticker" class="news-ticker-text">Carregando últimas notícias de futebol e da Paraíba...</div>
     </div>
   </div>
 
@@ -202,7 +202,6 @@
       }
     }
 
-    // Monitora a troca do ícone ao entrar/sair da tela cheia
     document.addEventListener('fullscreenchange', () => {
       const fsIcon = document.getElementById('fs-icon');
       if (!document.fullscreenElement) {
@@ -229,11 +228,24 @@
     let inactiveLayer = layerB;
     let isTransitioning = false;
 
-    // --- CARREGADOR E ALTERNADOR DE FONTES DE NOTÍCIAS ---
+    // --- CARREGADOR E ALTERNADOR DE FONTES DE NOTÍCIAS (ESPORTE & PARAIBA) ---
     const fontesNoticias = [
-      { nome: "G1 Notícias", url: "https://g1.globo.com/dynamo/rss2.xml" },
-      { nome: "UOL Notícias", url: "https://rss.uol.com.br/feed/noticias.xml" },
-      { nome: "BBC Brasil", url: "https://feeds.bbci.co.uk/portuguese/rss.xml" }
+      {
+        nome: "GE - Futebol",
+        url: "https://ge.globo.com/rss/ge/"
+      },
+      {
+        nome: "GE - Paraíba Esporte",
+        url: "https://ge.globo.com/rss/ge/pb/"
+      },
+      {
+        nome: "Jornal da Paraíba",
+        url: "https://www.jornaldaparaiba.com.br/feed/"
+      },
+      {
+        nome: "Portal T5 - Paraíba",
+        url: "https://www.portalt5.com.br/feed/"
+      }
     ];
 
     let indiceFonteAtual = 0;
@@ -398,7 +410,6 @@
 
       statusMsg.style.display = 'none';
 
-      // Auto-fullscreen ao carregar a primeira mídia
       if (!firstMediaLoaded) {
         firstMediaLoaded = true;
         openFullscreen();
