@@ -19,10 +19,9 @@
     }
     #display-container {
       width: 100vw;
-      height: calc(100vh - 45px); /* Reserva espaço para a barra de notícias */
+      height: calc(100vh - 45px);
       position: relative;
     }
-    /* Duas camadas fixas para as mídias */
     .layer {
       width: 100%;
       height: 100%;
@@ -56,8 +55,6 @@
       background: rgba(0,0,0,0.7);
       border-radius: 8px;
     }
-
-    /* BOTÃO DE TELA CHEIA COMPACTO E DISCRETO */
     #fullscreen-btn {
       position: fixed;
       top: 10px;
@@ -83,8 +80,6 @@
       border-color: #e50914;
       transform: scale(1.1);
     }
-
-    /* BARRA DE NOTÍCIAS EM TEMPO REAL (TICKER) */
     #news-bar {
       width: 100vw;
       height: 45px;
@@ -134,7 +129,6 @@
       color: #ffcc00;
       margin-right: 10px;
     }
-
     @keyframes ticker {
       0% { transform: translate3d(0, 0, 0); }
       100% { transform: translate3d(-100%, 0, 0); }
@@ -148,7 +142,6 @@
 </head>
 <body>
 
-  <!-- Botão de Tela Cheia Pequeno -->
   <button id="fullscreen-btn" onclick="toggleFullscreen()" title="Alternar Tela Cheia">
     <span id="fs-icon">⛶</span>
   </button>
@@ -159,18 +152,16 @@
     <div id="status-msg">Carregando mídias...</div>
   </div>
 
-  <!-- Barra de Notícias -->
   <div id="news-bar">
     <div id="news-badge" class="news-badge">Esporte & PB</div>
     <div class="news-ticker-wrapper">
-      <div id="news-ticker" class="news-ticker-text">Carregando últimas notícias de futebol e da Paraíba...</div>
+      <div id="news-ticker" class="news-ticker-text">Carregando notícias...</div>
     </div>
   </div>
 
   <script>
     let firstMediaLoaded = false;
 
-    // --- FUNÇÕES DE TELA CHEIA ---
     function openFullscreen() {
       if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
         const elem = document.documentElement;
@@ -186,7 +177,6 @@
 
     function toggleFullscreen() {
       const fsIcon = document.getElementById('fs-icon');
-
       if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
         openFullscreen();
         fsIcon.innerText = '🗗';
@@ -211,7 +201,6 @@
       }
     });
 
-    // --- LÓGICA DO PLAYER E NOTÍCIAS ---
     const urlParams = new URLSearchParams(window.location.search);
     const MINHA_TV_ID = urlParams.get('tv') || 'todas';
 
@@ -228,7 +217,7 @@
     let inactiveLayer = layerB;
     let isTransitioning = false;
 
-    // --- SISTEMA DE PRESENÇA EM TEMPO REAL ---
+    // SISTEMA DE PRESENÇA EM TEMPO REAL
     if (typeof database !== 'undefined') {
       const sessionKey = 'tv_' + MINHA_TV_ID + '_' + Math.random().toString(36).substr(2, 6);
       const tvRef = database.ref('tvs_online/' + sessionKey);
@@ -239,15 +228,15 @@
           tvRef.onDisconnect().remove();
           tvRef.set({
             id: MINHA_TV_ID,
-            url: window.location.href,
+            urlCompleta: window.location.href,
             pagina: window.location.pathname + window.location.search,
+            dominio: window.location.hostname,
             ultimaConexao: firebase.database.ServerValue.TIMESTAMP
           });
         }
       });
     }
 
-    // --- CARREGADOR DE FONTES DE NOTÍCIAS ---
     const fontesNoticias = [
       { nome: "GE - Futebol", url: "https://ge.globo.com/rss/ge/" },
       { nome: "GE - Paraíba Esporte", url: "https://ge.globo.com/rss/ge/pb/" },
@@ -275,7 +264,6 @@
             newsTicker.style.animation = 'none';
             newsTicker.offsetHeight;
             newsTicker.style.animation = 'ticker 45s linear infinite';
-
             newsTicker.innerHTML = htmlNoticias;
           }
         })
@@ -289,7 +277,6 @@
     fetchNews();
     setInterval(fetchNews, 2 * 60 * 1000);
 
-    // --- LÓGICA DO PLAYER ---
     function formatUrl(url, tipo) {
       if (!url) return '';
       let clean = url.trim();
@@ -362,7 +349,6 @@
       if (item.tipo === 'imagem') {
         newElement = document.createElement('img');
         newElement.src = finalUrl;
-        
         newElement.onload = () => switchLayers(newElement, duration);
         newElement.onerror = () => nextMedia();
         inactiveLayer.appendChild(newElement);
