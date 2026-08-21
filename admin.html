@@ -74,7 +74,10 @@
     th { background: #252525; color: #aaa; font-size: 0.85rem; text-transform: uppercase; }
     .btn-delete { background: #d32f2f; color: #fff; border: none; padding: 6px 12px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; }
     .btn-delete:hover { background: #9a0007; }
+    .btn-copy { background: #28a745; color: #fff; border: none; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; margin-left: 5px; }
+    .btn-copy:hover { background: #218838; }
     .badge-online { background: #00ff6622; color: #00ff66; padding: 3px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; }
+    .url-link { color: #00bfff; font-family: monospace; font-size: 0.85rem; word-break: break-all; }
   </style>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -128,7 +131,7 @@
         <h2>1. Cadastrar TV / Estabelecimento</h2>
         <form id="cadastrar-tv-form">
           <div class="form-group">
-            <label for="tvIdInput">ID da TV (ex: tv_recepcao, tv_sala1):</label>
+            <label for="tvIdInput">ID da TV (ex: recepcao_padaria):</label>
             <input type="text" id="tvIdInput" placeholder="Ex: recepcao_padaria" required>
           </div>
           <div class="form-group">
@@ -138,12 +141,12 @@
           <button type="submit" class="btn-secondary">Cadastrar / Salvar TV</button>
         </form>
 
-        <h3 style="margin-top: 20px; font-size: 1rem; color: #aaa;">TVs Cadastradas:</h3>
+        <h3 style="margin-top: 20px; font-size: 1rem; color: #aaa;">TVs Cadastradas & Links:</h3>
         <table>
           <thead>
             <tr>
-              <th>ID TV</th>
-              <th>Estabelecimento</th>
+              <th>ID & Estabelecimento</th>
+              <th>Link da Tela</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -209,6 +212,7 @@
 
   <script>
     const SENHA_MESTER = "admin123";
+    const BASE_URL = "https://kmgestaodetrafego-dev.github.io/Midea-Tv/";
 
     const loginScreen = document.getElementById('login-screen');
     const adminContainer = document.getElementById('admin-container');
@@ -279,7 +283,6 @@
           tvsCadastradasObj = data;
           tabelaTvsCadastradas.innerHTML = '';
           
-          // Limpa select (mantendo opção 'todas')
           tvAlvoSelect.innerHTML = '<option value="todas">Todas as TVs (Geral)</option>';
 
           const keys = Object.keys(data);
@@ -290,17 +293,26 @@
 
           keys.forEach(key => {
             const tv = data[key];
+            const tvUrl = `${BASE_URL}?tv=${tv.id}`;
 
-            // Adiciona na tabela de cadastros
+            // Adiciona na tabela de cadastros com o link direto
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td><strong>${tv.id}</strong></td>
-              <td>${tv.estabelecimento}</td>
-              <td><button class="btn-delete" onclick="removerTvCadastrada('${tv.id}')">Excluir</button></td>
+              <td>
+                <strong style="color: #fff;">${tv.estabelecimento}</strong><br>
+                <small style="color: #aaa;">ID: ${tv.id}</small>
+              </td>
+              <td>
+                <a href="${tvUrl}" target="_blank" class="url-link">${tvUrl}</a>
+                <button class="btn-copy" onclick="copiarUrl('${tvUrl}')">Copiar</button>
+              </td>
+              <td>
+                <button class="btn-delete" onclick="removerTvCadastrada('${tv.id}')">Excluir</button>
+              </td>
             `;
             tabelaTvsCadastradas.appendChild(tr);
 
-            // Adiciona opção no <select> de cadastro de mídias
+            // Adiciona opção no dropdown de adicionar mídia
             const option = document.createElement('option');
             option.value = tv.id;
             option.textContent = `${tv.estabelecimento} (${tv.id})`;
@@ -380,6 +392,12 @@
           });
         });
       }
+    }
+
+    function copiarUrl(url) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Link copiado para a área de transferência!');
+      });
     }
 
     function removerTvCadastrada(tvId) {
