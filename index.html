@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Player da TV com Notícias</title>
+  <title>Player da TV com Notícias e Clima</title>
   <style>
     * { 
       margin: 0; 
@@ -53,7 +53,7 @@
 
     #display-container {
       width: 100%;
-      height: calc(100% - 45px); /* Reserva espaço para a barra de notícias */
+      height: calc(100% - 50px); /* Reserva espaço para a barra de notícias/clima */
       position: relative;
     }
 
@@ -119,10 +119,10 @@
       transform: scale(1.1);
     }
 
-    /* BARRA DE NOTÍCIAS EM TEMPO REAL (TICKER) */
+    /* BARRA DE NOTÍCIAS, RELÓGIO E CLIMA (TICKER FOOTER) */
     #news-bar {
       width: 100%;
-      height: 45px;
+      height: 50px;
       position: relative;
       background-color: #111;
       border-top: 3px solid #e50914;
@@ -168,6 +168,33 @@
       margin-right: 10px;
     }
 
+    /* WIDGET CLIMA E RELÓGIO FIXO À DIREITA */
+    .widget-info {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      background: #1a1a1a;
+      border-left: 2px solid #222;
+      padding: 0 15px;
+      gap: 15px;
+      z-index: 101;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.5);
+    }
+    .clima-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #ffcc00;
+      font-size: 0.95rem;
+      font-weight: bold;
+    }
+    .relogio-box {
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
     @keyframes ticker {
       0% { transform: translate3d(0, 0, 0); }
       100% { transform: translate3d(-100%, 0, 0); }
@@ -193,11 +220,20 @@
       <div id="status-msg">Carregando mídias...</div>
     </div>
 
-    <!-- Barra de Notícias -->
+    <!-- Barra de Notícias, Clima e Relógio -->
     <div id="news-bar">
       <div id="news-badge" class="news-badge">Esporte & PB</div>
       <div class="news-ticker-wrapper">
         <div id="news-ticker" class="news-ticker-text">Carregando últimas notícias de futebol e da Paraíba...</div>
+      </div>
+      
+      <!-- Bloco de Clima e Relógio em Tempo Real -->
+      <div class="widget-info">
+        <div class="clima-box">
+          <span id="clima-icone">☀️</span>
+          <span id="clima-temp">--°C</span>
+        </div>
+        <div class="relogio-box" id="relogio">00:00</div>
       </div>
     </div>
   </div>
@@ -216,6 +252,46 @@
     } else if (ORIENTACAO === '270') {
       pageWrapper.classList.add('orientacao-270');
     }
+
+    // --- RELÓGIO EM TEMPO REAL ---
+    function atualizarRelogio() {
+      const agora = new Date();
+      const horas = String(agora.getHours()).padStart(2, '0');
+      const minutos = String(agora.getMinutes()).padStart(2, '0');
+      document.getElementById('relogio').innerText = `${horas}:${minutos}`;
+    }
+    setInterval(atualizarRelogio, 1000);
+    atualizarRelogio();
+
+    // --- PREVISÃO DO TEMPO (CLIMA) VIA API ---
+    function carregarClima() {
+      // Coordenadas padrão: João Pessoa - PB (-7.1153, -34.861)
+      const lat = -7.1153;
+      const lon = -34.861;
+      const urlClima = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
+
+      fetch(urlClima)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.current_weather) {
+            const temp = Math.round(data.current_weather.temperature);
+            const code = data.current_weather.weathercode;
+
+            let icone = '☀️';
+            if (code >= 1 && code <= 3) icone = '⛅';
+            else if (code >= 45 && code <= 48) icone = '🌫️';
+            else if (code >= 51 && code <= 67) icone = '🌧️';
+            else if (code >= 80 && code <= 82) icone = '🌦️';
+            else if (code >= 95) icone = '⛈️';
+
+            document.getElementById('clima-temp').innerText = `${temp}°C`;
+            document.getElementById('clima-icone').innerText = icone;
+          }
+        })
+        .catch(err => console.warn("Erro ao buscar clima:", err));
+    }
+    carregarClima();
+    setInterval(carregarClima, 15 * 60 * 1000); // Atualiza clima a cada 15 min
 
     // --- FUNÇÕES DE TELA CHEIA ---
     function openFullscreen() {
@@ -296,7 +372,6 @@
         }
       });
 
-      // Atualiza o status periodicamente a cada 15 segundos
       setInterval(atualizarSinalVida, 15000);
     }
 
@@ -344,7 +419,7 @@
 
     // --- REGISTRO DE MÉTRICAS NO FIREBASE ---
     function registrarMetricaExibicao(item, tempoEmSegundos) {
-      if (!typeof database === 'undefined' || !item || !item.empresaId) return;
+      if (typeof database === 'undefined' || !item || !item.empresaId) return;
 
       const hoje = new Date().toISOString().split('T')[0];
       const metricaRef = database.ref(`metricas/${hoje}/${item.empresaId}`);
