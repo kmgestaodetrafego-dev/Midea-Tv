@@ -131,21 +131,6 @@
       overflow: hidden;
       z-index: 100;
     }
-    .news-badge {
-      background-color: #e50914;
-      color: #fff;
-      font-weight: bold;
-      font-size: 0.85rem;
-      padding: 0 15px;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      white-space: nowrap;
-      z-index: 101;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-      text-transform: uppercase;
-      transition: background-color 0.5s ease;
-    }
     .news-ticker-wrapper {
       flex: 1;
       overflow: hidden;
@@ -168,17 +153,17 @@
       margin-right: 10px;
     }
 
-    /* WIDGET CLIMA E RELÓGIO FIXO À DIREITA */
+    /* WIDGET CLIMA E RELÓGIO FIXO À ESQUERDA */
     .widget-info {
       display: flex;
       align-items: center;
       height: 100%;
       background: #1a1a1a;
-      border-left: 2px solid #222;
+      border-right: 2px solid #222;
       padding: 0 15px;
       gap: 15px;
       z-index: 101;
-      box-shadow: -2px 0 10px rgba(0,0,0,0.5);
+      box-shadow: 2px 0 10px rgba(0,0,0,0.5);
     }
     .clima-box {
       display: flex;
@@ -222,18 +207,18 @@
 
     <!-- Barra de Notícias, Clima e Relógio -->
     <div id="news-bar">
-      <div id="news-badge" class="news-badge">Esporte & PB</div>
-      <div class="news-ticker-wrapper">
-        <div id="news-ticker" class="news-ticker-text">Carregando últimas notícias de futebol e da Paraíba...</div>
-      </div>
-      
-      <!-- Bloco de Clima e Relógio em Tempo Real -->
+      <!-- Bloco de Clima e Relógio em Tempo Real na ESQUERDA -->
       <div class="widget-info">
+        <div class="relogio-box" id="relogio">00:00</div>
         <div class="clima-box">
           <span id="clima-icone">☀️</span>
           <span id="clima-temp">--°C</span>
         </div>
-        <div class="relogio-box" id="relogio">00:00</div>
+      </div>
+
+      <!-- Ticker de notícias rolando na DIREITA -->
+      <div class="news-ticker-wrapper">
+        <div id="news-ticker" class="news-ticker-text">Carregando últimas notícias de futebol e da Paraíba...</div>
       </div>
     </div>
   </div>
@@ -339,7 +324,6 @@
     const layerB = document.getElementById('layer-b');
     const statusMsg = document.getElementById('status-msg');
     const newsTicker = document.getElementById('news-ticker');
-    const newsBadge = document.getElementById('news-badge');
 
     let playlist = [];
     let currentIndex = 0;
@@ -389,8 +373,6 @@
       const fonte = fontesNoticias[indiceFonteAtual];
       const rssUrl = encodeURIComponent(fonte.url);
       const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`;
-
-      newsBadge.innerText = fonte.nome;
 
       fetch(apiUrl)
         .then(response => response.json())
