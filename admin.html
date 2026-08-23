@@ -47,25 +47,38 @@
       letter-spacing: 0.5px;
     }
 
-    /* Status de TVs Online */
+    /* Status de TVs Online / Offline */
     .status-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #1c3b2b;
-      color: #2ecc71;
-      border: 1px solid #27ae60;
       padding: 2px 8px;
       border-radius: 12px;
       font-size: 0.75rem;
       font-weight: bold;
     }
+    .status-badge.online {
+      background: #1c3b2b;
+      color: #2ecc71;
+      border: 1px solid #27ae60;
+    }
+    .status-badge.offline {
+      background: #3b1c1c;
+      color: #e74c3c;
+      border: 1px solid #c0392b;
+    }
     .status-dot {
       width: 8px;
       height: 8px;
-      background-color: #2ecc71;
       border-radius: 50%;
+    }
+    .status-badge.online .status-dot {
+      background-color: #2ecc71;
       box-shadow: 0 0 8px #2ecc71;
+    }
+    .status-badge.offline .status-dot {
+      background-color: #e74c3c;
+      box-shadow: 0 0 8px #e74c3c;
     }
     
     form { display: flex; flex-direction: column; gap: 12px; }
@@ -142,8 +155,16 @@
 
   <!-- PAINEL SUPERIOR: MONITORAMENTO DE TVS ONLINE -->
   <div class="card" style="margin-bottom: 25px;">
-    <h2>TVs Ativas no Momento (Online)</h2>
+    <h2>TVs Ativas no Momento (Status em Tempo Real)</h2>
     <ul id="lista-tvs-online" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;"></ul>
+  </div>
+
+  <!-- MÉTRICAS DE TEMPO NO AR -->
+  <div class="card" style="margin-bottom: 25px;">
+    <h2>📊 Métricas e Tempo no Ar (Hoje)</h2>
+    <ul id="lista-metricas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;">
+      <li style="color: #777; font-size: 0.9rem;">Carregando relatório do dia...</li>
+    </ul>
   </div>
 
   <div class="grid">
@@ -213,6 +234,7 @@
     const listaTvs = document.getElementById('lista-tvs');
     const listaTvsOnline = document.getElementById('lista-tvs-online');
     const listaPlaylist = document.getElementById('lista-playlist');
+    const listaMetricas = document.getElementById('lista-metricas');
     
     const selectEmpresa = document.getElementById('midia-empresa');
     const selectTvMidia = document.getElementById('midia-tv');
@@ -220,39 +242,86 @@
     let empresasCache = {};
     let tvsCadastradasCache = {};
 
-    // --- MONITOR DE TVS ONLINE ---
+    // --- MONITOR DE TVS ONLINE / OFFLINE ---
     database.ref('tvs_online').on('value', (snapshot) => {
       listaTvsOnline.innerHTML = '';
       const data = snapshot.val() || {};
-
       const tvs = Object.entries(data);
+      const AGORA = Date.now();
+
       if (tvs.length === 0) {
-        listaTvsOnline.innerHTML = '<li style="color: #777; font-size: 0.9rem;">Nenhuma TV conectada no momento.</li>';
+        listaTvsOnline.innerHTML = '<li style="color: #777; font-size: 0.9rem;">Nenhuma TV registrada ou conectada.</li>';
         return;
       }
 
       tvs.forEach(([key, tv]) => {
         const li = document.createElement('li');
-        const vistoEm = tv.vistoEm ? new Date(tv.vistoEm).toLocaleTimeString('pt-BR') : 'Ativa agora';
+        
+        // Verifica a quanto tempo o último sinal (heartbeat) foi enviado
+        const ultimoSinal = tv.lastSeen || tv.vistoEm || 0;
+        const tempoSemSinalSegundos = (AGORA - ultimoSinal) / 1000;
+        
+        // Se passar de 45 segundos sem enviar sinal, considera OFFLINE
+        const isOnline = tempoSemSinalSegundos < 45;
+
+        const badgeHTML = isOnline 
+          ? `<span class="status-badge online"><span class="status-dot"></span> ONLINE</span>`
+          : `<span class="status-badge offline"><span class="status-dot"></span> OFFLINE</span>`;
+
+        const vistoEmTexto = ultimoSinal ? new Date(ultimoSinal).toLocaleTimeString('pt-BR') : 'Sem registro';
 
         li.innerHTML = `
           <div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <strong style="color: #fff;">${tv.id || key}</strong>
-              <span class="status-badge"><span class="status-dot"></span> ONLINE</span>
+              ${badgeHTML}
             </div>
-            <small style="color: #aaa; display: block; margin-top: 4px;">Último sinal: ${vistoEm}</small>
+            <small style="color: #aaa; display: block; margin-top: 4px;">Último sinal: ${vistoEmTexto}</small>
           </div>
-          <button class="btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="desconectarTV('${key}')">Desconectar</button>
+          <button class="btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="desconectarTV('${key}')">Remover</button>
         `;
         listaTvsOnline.appendChild(li);
       });
     });
 
     function desconectarTV(key) {
-      if (confirm("Deseja remover esta TV da lista de ativas?")) {
+      if (confirm("Deseja remover esta TV da lista de monitoramento?")) {
         database.ref('tvs_online/' + key).remove();
       }
+    }
+
+    // --- MÉTRICAS DE TEMPO NO AR E EXIBIÇÃO ---
+    function carregarMetricasDoDia() {
+      const hoje = new Date().toISOString().split('T')[0];
+      
+      database.ref(`metricas/${hoje}`).on('value', (snapshot) => {
+        listaMetricas.innerHTML = '';
+        const metricas = snapshot.val() || {};
+
+        if (Object.keys(metricas).length === 0) {
+          listaMetricas.innerHTML = '<li style="color: #777; font-size: 0.9rem;">Nenhuma exibição registrada hoje.</li>';
+          return;
+        }
+
+        Object.entries(metricas).forEach(([empresaId, dados]) => {
+          const nomeEmpresa = empresasCache[empresaId]?.nome || 'Anunciante Sem Nome';
+          const minutos = (dados.tempoTotalSegundos / 60).toFixed(1);
+
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <div>
+              <strong style="color: #fff;">${nomeEmpresa}</strong><br>
+              <small style="color: #aaa;">Exibições: <b style="color:#ffcc00;">${dados.vezesExibidas || 0}x</b></small>
+            </div>
+            <div style="text-align: right;">
+              <span class="badge" style="background:#1e3d59; color:#17a2b8; border-color:#17a2b8; font-size:0.85rem;">
+                ⏱️ ${minutos} min no ar
+              </span>
+            </div>
+          `;
+          listaMetricas.appendChild(li);
+        });
+      });
     }
 
     // --- GERENCIAR EMPRESAS ---
@@ -283,6 +352,9 @@
         option.innerText = emp.nome;
         selectEmpresa.appendChild(option);
       });
+
+      // Recarrega as métricas para atualizar os nomes das empresas
+      carregarMetricasDoDia();
     });
 
     function excluirEmpresa(id) {
@@ -471,4 +543,3 @@
   </script>
 </body>
 </html>
-
