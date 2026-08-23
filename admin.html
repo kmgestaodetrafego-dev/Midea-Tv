@@ -3,413 +3,289 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Master - Gerenciador Midea TV</title>
+  <title>Painel de Controle - Mídia Indoor</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #121212;
-      color: #e0e0e0;
-      padding: 20px;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { background: #f4f6f9; padding: 20px; color: #333; }
+    h1 { margin-bottom: 20px; color: #111; }
+    
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .card h2 { font-size: 1.2rem; margin-bottom: 15px; color: #e50914; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; }
+    
+    form { display: flex; flex-direction: column; gap: 10px; }
+    input, select, button { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; }
+    button { background: #e50914; color: #fff; border: none; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+    button:hover { background: #b80710; }
+    button.btn-secondary { background: #555; }
+    button.btn-secondary:hover { background: #333; }
+    button.btn-danger { background: #d9534f; padding: 5px 10px; font-size: 0.8rem; }
+    button.btn-danger:hover { background: #c9302c; }
 
-    /* TELA DE LOGIN */
-    #login-screen {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background-color: #0d0d0d; z-index: 9999;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .login-box {
-      background: #1e1e1e; padding: 30px; border-radius: 10px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.6); width: 100%; max-width: 380px;
-      text-align: center; border: 1px solid #333;
-    }
-    .login-box h2 { color: #fff; margin-bottom: 8px; }
-    .login-box p { color: #aaa; font-size: 0.9rem; margin-bottom: 20px; }
-    .login-box input {
-      width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 6px;
-      border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; text-align: center;
-    }
-    .login-box button {
-      width: 100%; padding: 12px; background: #e50914; color: #fff;
-      border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer;
-    }
-    .login-box button:hover { background: #b80710; }
-    #error-msg { color: #ff4d4d; font-size: 0.85rem; margin-top: 10px; display: none; }
+    ul { list-style: none; margin-top: 10px; }
+    li { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
 
-    /* LAYOUT ADMIN */
-    .container { max-width: 1100px; margin: 0 auto; display: none; }
-    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    h1 { color: #fff; font-size: 1.8rem; }
-    .btn-logout { background: #333; color: #ccc; border: 1px solid #555; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .btn-logout:hover { background: #444; color: #fff; }
-
-    .card {
-      background: #1e1e1e; padding: 20px; border-radius: 8px; margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); border: 1px solid #2a2a2a;
+    /* Estilos do Drag and Drop */
+    .draggable-list { list-style-type: none; padding: 0; margin-top: 15px; }
+    .draggable-item {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 12px 15px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: grab;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .card h2 { margin-bottom: 15px; font-size: 1.2rem; color: #ffcc00; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
-
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #aaa; }
-    input, select {
-      width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #444;
-      border-radius: 4px; color: #fff; font-size: 1rem;
-    }
-    .btn-primary {
-      background: #e50914; color: #fff; border: none; padding: 12px 20px;
-      font-size: 1rem; font-weight: bold; border-radius: 4px; cursor: pointer; transition: background 0.2s; width: 100%;
-    }
-    .btn-primary:hover { background: #b80710; }
-    .btn-secondary {
-      background: #007bff; color: #fff; border: none; padding: 12px 20px;
-      font-size: 1rem; font-weight: bold; border-radius: 4px; cursor: pointer; transition: background 0.2s; width: 100%;
-    }
-    .btn-secondary:hover { background: #0056b3; }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
-    th { background: #252525; color: #aaa; font-size: 0.85rem; text-transform: uppercase; }
-    .btn-delete { background: #d32f2f; color: #fff; border: none; padding: 6px 12px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; }
-    .btn-delete:hover { background: #9a0007; }
-    .btn-copy { background: #28a745; color: #fff; border: none; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; margin-left: 5px; }
-    .btn-copy:hover { background: #218838; }
-    .badge-online { background: #00ff6622; color: #00ff66; padding: 3px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; }
-    .url-link { color: #00bfff; font-family: monospace; font-size: 0.85rem; word-break: break-all; }
+    .draggable-item.dragging { opacity: 0.5; background: #eef2f5; border: 2px dashed #e50914; }
+    .item-info { display: flex; align-items: center; gap: 12px; }
+    .drag-handle { cursor: grab; color: #888; font-size: 1.2rem; margin-right: 5px; }
+    .badge { background: #eee; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; color: #555; }
   </style>
 
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="config.js"></script>
 </head>
 <body>
 
-  <!-- TELA DE LOGIN -->
-  <div id="login-screen">
-    <div class="login-box">
-      <h2>Acesso Master</h2>
-      <p>Digite a senha para acessar o painel</p>
-      <form id="login-form">
-        <input type="password" id="admin-password" placeholder="Sua Senha" required autofocus>
-        <button type="submit">Entrar</button>
+  <h1>Painel de Gerenciamento de Mídia</h1>
+
+  <div class="grid">
+    <!-- CADASTRO DE EMPRESAS -->
+    <div class="card">
+      <h2>Cadastrar Empresa</h2>
+      <form id="form-empresa">
+        <input type="text" id="empresa-nome" placeholder="Nome da Empresa / Anunciante" required>
+        <button type="submit">Cadastrar Empresa</button>
       </form>
-      <div id="error-msg">Senha incorreta. Tente novamente.</div>
+
+      <h2 style="margin-top: 20px;">Empresas Cadastradas</h2>
+      <ul id="lista-empresas"></ul>
+    </div>
+
+    <!-- ADICIONAR MÍDIA DA PLAYLIST -->
+    <div class="card">
+      <h2>Adicionar Mídia à Playlist</h2>
+      <form id="form-midia">
+        <select id="midia-empresa" required>
+          <option value="">Selecione a Empresa Anunciante...</option>
+        </select>
+        <input type="url" id="midia-url" placeholder="URL da Mídia (Drive, Dropbox, Direct Link)" required>
+        <select id="midia-tipo" required>
+          <option value="imagem">Imagem</option>
+          <option value="video">Vídeo</option>
+        </select>
+        <input type="number" id="midia-tempo" placeholder="Tempo de Exibição (segundos)" min="3" value="10" required>
+        <input type="text" id="midia-tv" placeholder="ID da TV (Ex: sala, recepcao ou 'todas')" value="todas" required>
+        <button type="submit">Adicionar Mídia</button>
+      </form>
+    </div>
+
+    <!-- TVS CONECTADAS / GERENCIAMENTO -->
+    <div class="card">
+      <h2>TVs Registradas / Online</h2>
+      <ul id="lista-tvs"></ul>
     </div>
   </div>
 
-  <!-- CONTAINER ADMIN -->
-  <div class="container" id="admin-container">
-    <div class="header-bar">
-      <h1>Painel Master - Midea TV</h1>
-      <button class="btn-logout" onclick="logout()">Sair</button>
+  <!-- PLAYLIST COM DRAG AND DROP -->
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2>Organização da Playlist (Arraste para reordenar)</h2>
+      <button class="btn-secondary" onclick="salvarOrdemPlaylist()">Salvar Ordem</button>
     </div>
-
-    <!-- MONITOR DE TVS ONLINE -->
-    <div class="card">
-      <h2>TVs Conectadas em Tempo Real</h2>
-      <p style="margin-bottom: 10px;">Total Online: <strong id="total-tvs-online" style="color: #00ff66;">0</strong></p>
-      <table>
-        <thead>
-          <tr>
-            <th>ID da TV</th>
-            <th>Estabelecimento</th>
-            <th>Página / URL</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="tabela-tvs-online">
-          <tr><td colspan="4" style="text-align: center; color: #888;">Buscando TVs conectadas...</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="grid-2">
-      <!-- CADASTRAR TV E ESTABELECIMENTO -->
-      <div class="card">
-        <h2>1. Cadastrar TV / Estabelecimento</h2>
-        <form id="cadastrar-tv-form">
-          <div class="form-group">
-            <label for="tvIdInput">ID da TV (ex: recepcao_padaria):</label>
-            <input type="text" id="tvIdInput" placeholder="Ex: recepcao_padaria" required>
-          </div>
-          <div class="form-group">
-            <label for="estabelecimentoInput">Nome do Estabelecimento / Local:</label>
-            <input type="text" id="estabelecimentoInput" placeholder="Ex: Padaria Central" required>
-          </div>
-          <button type="submit" class="btn-secondary">Cadastrar / Salvar TV</button>
-        </form>
-
-        <h3 style="margin-top: 20px; font-size: 1rem; color: #aaa;">TVs Cadastradas & Links:</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>ID & Estabelecimento</th>
-              <th>Link da Tela</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="tabela-tvs-cadastradas">
-            <tr><td colspan="3" style="text-align: center; color: #888;">Carregando cadastro...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- ADICIONAR MÍDIA PARA TV ESPECÍFICA -->
-      <div class="card">
-        <h2>2. Adicionar Mídia à TV</h2>
-        <form id="media-form">
-          <div class="form-group">
-            <label for="tvAlvoSelect">Selecione a TV / Estabelecimento:</label>
-            <select id="tvAlvoSelect" required>
-              <option value="todas">Todas as TVs (Geral)</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="url">URL da Mídia (Imagem ou Vídeo):</label>
-            <input type="text" id="url" required placeholder="https://...">
-          </div>
-          
-          <div class="form-group">
-            <label for="tipo">Tipo de Mídia:</label>
-            <select id="tipo">
-              <option value="imagem">Imagem</option>
-              <option value="video">Vídeo</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="tempo">Tempo de Exibição (Segundos):</label>
-            <input type="number" id="tempo" value="10" min="3" required>
-          </div>
-
-          <button type="submit" class="btn-primary">Adicionar à Playlist</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- LISTA DE MÍDIAS CADASTRADAS -->
-    <div class="card">
-      <h2>Playlist Agendada</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>TV / Estabelecimento</th>
-            <th>Tipo</th>
-            <th>URL</th>
-            <th>Tempo</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="playlist-table">
-          <tr><td colspan="5" style="text-align: center; color: #888;">Carregando playlist...</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <ul id="lista-playlist" class="draggable-list"></ul>
   </div>
 
   <script>
-    const SENHA_MESTER = "admin123";
-    const BASE_URL = "https://kmgestaodetrafego-dev.github.io/Midea-Tv/";
+    const formEmpresa = document.getElementById('form-empresa');
+    const formMidia = document.getElementById('form-midia');
+    const listaEmpresas = document.getElementById('lista-empresas');
+    const selectEmpresa = document.getElementById('midia-empresa');
+    const listaTvs = document.getElementById('lista-tvs');
+    const listaPlaylist = document.getElementById('lista-playlist');
 
-    const loginScreen = document.getElementById('login-screen');
-    const adminContainer = document.getElementById('admin-container');
-    const loginForm = document.getElementById('login-form');
-    const adminPasswordInput = document.getElementById('admin-password');
-    const errorMsg = document.getElementById('error-msg');
+    let empresasCache = {};
 
-    if (sessionStorage.getItem('master_auth') === 'true') {
-      exibirPainel();
-    }
-
-    loginForm.addEventListener('submit', (e) => {
+    // --- GERENCIAR EMPRESAS ---
+    formEmpresa.addEventListener('submit', (e) => {
       e.preventDefault();
-      if (adminPasswordInput.value === SENHA_MESTER) {
-        sessionStorage.setItem('master_auth', 'true');
-        exibirPainel();
-      } else {
-        errorMsg.style.display = 'block';
-        adminPasswordInput.value = '';
-        adminPasswordInput.focus();
-      }
+      const nome = document.getElementById('empresa-nome').value.trim();
+      if (!nome) return;
+
+      const newRef = database.ref('empresas').push();
+      newRef.set({ nome }).then(() => {
+        document.getElementById('empresa-nome').value = '';
+      });
     });
 
-    function exibirPainel() {
-      loginScreen.style.display = 'none';
-      adminContainer.style.display = 'block';
-      iniciarFirebaseAdmin();
-    }
+    database.ref('empresas').on('value', (snapshot) => {
+      listaEmpresas.innerHTML = '';
+      selectEmpresa.innerHTML = '<option value="">Selecione a Empresa Anunciante...</option>';
+      empresasCache = snapshot.val() || {};
 
-    function logout() {
-      sessionStorage.removeItem('master_auth');
-      window.location.reload();
-    }
+      Object.entries(empresasCache).forEach(([id, emp]) => {
+        // Popula Lista
+        const li = document.createElement('li');
+        li.innerHTML = `<span><strong>${emp.nome}</strong></span>
+                        <button class="btn-danger" onclick="excluirEmpresa('${id}')">Excluir</button>`;
+        listaEmpresas.appendChild(li);
 
-    let tvsCadastradasObj = {};
+        // Popula Select
+        const option = document.createElement('option');
+        option.value = id;
+        option.innerText = emp.nome;
+        selectEmpresa.appendChild(option);
+      });
+    });
 
-    function iniciarFirebaseAdmin() {
-      const cadastrarTvForm = document.getElementById('cadastrar-tv-form');
-      const mediaForm = document.getElementById('media-form');
-      const playlistTable = document.getElementById('playlist-table');
-      const tabelaTvsOnline = document.getElementById('tabela-tvs-online');
-      const totalTvsOnline = document.getElementById('total-tvs-online');
-      const tabelaTvsCadastradas = document.getElementById('tabela-tvs-cadastradas');
-      const tvAlvoSelect = document.getElementById('tvAlvoSelect');
-
-      if (typeof database !== 'undefined') {
-
-        // --- 1. GERENCIAR CADASTRO DE TVS / ESTABELECIMENTOS ---
-        cadastrarTvForm.addEventListener('submit', (e) => {
-          e.preventDefault();
-          const tvId = document.getElementById('tvIdInput').value.trim().toLowerCase().replace(/\s+/g, '_');
-          const estabelecimento = document.getElementById('estabelecimentoInput').value.trim();
-
-          if (!tvId || !estabelecimento) return;
-
-          database.ref('tvs_cadastradas/' + tvId).set({
-            id: tvId,
-            estabelecimento: estabelecimento,
-            criadoEm: firebase.database.ServerValue.TIMESTAMP
-          }).then(() => {
-            cadastrarTvForm.reset();
-          });
-        });
-
-        // OUVIR CADASTRO DE TVS
-        database.ref('tvs_cadastradas').on('value', (snapshot) => {
-          const data = snapshot.val() || {};
-          tvsCadastradasObj = data;
-          tabelaTvsCadastradas.innerHTML = '';
-          
-          tvAlvoSelect.innerHTML = '<option value="todas">Todas as TVs (Geral)</option>';
-
-          const keys = Object.keys(data);
-          if (keys.length === 0) {
-            tabelaTvsCadastradas.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #888;">Nenhuma TV cadastrada.</td></tr>';
-            return;
-          }
-
-          keys.forEach(key => {
-            const tv = data[key];
-            const tvUrl = `${BASE_URL}?tv=${tv.id}`;
-
-            // Adiciona na tabela de cadastros com o link direto
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>
-                <strong style="color: #fff;">${tv.estabelecimento}</strong><br>
-                <small style="color: #aaa;">ID: ${tv.id}</small>
-              </td>
-              <td>
-                <a href="${tvUrl}" target="_blank" class="url-link">${tvUrl}</a>
-                <button class="btn-copy" onclick="copiarUrl('${tvUrl}')">Copiar</button>
-              </td>
-              <td>
-                <button class="btn-delete" onclick="removerTvCadastrada('${tv.id}')">Excluir</button>
-              </td>
-            `;
-            tabelaTvsCadastradas.appendChild(tr);
-
-            // Adiciona opção no dropdown de adicionar mídia
-            const option = document.createElement('option');
-            option.value = tv.id;
-            option.textContent = `${tv.estabelecimento} (${tv.id})`;
-            tvAlvoSelect.appendChild(option);
-          });
-        });
-
-        // --- 2. MONITORAR TVS ONLINE ---
-        database.ref('tvs_online').on('value', (snapshot) => {
-          const tvs = snapshot.val();
-          if (!tvs) {
-            totalTvsOnline.innerText = '0';
-            tabelaTvsOnline.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #888;">Nenhuma TV conectada no momento.</td></tr>';
-            return;
-          }
-
-          const listaTvs = Object.values(tvs);
-          totalTvsOnline.innerText = listaTvs.length;
-
-          tabelaTvsOnline.innerHTML = listaTvs.map(tv => {
-            const est = tvsCadastradasObj[tv.id] ? tvsCadastradasObj[tv.id].estabelecimento : '<span style="color:#888;">Não cadastrada</span>';
-            return `
-              <tr>
-                <td style="font-weight: bold; color: #fff;">${tv.id}</td>
-                <td style="color: #ffcc00;">${est}</td>
-                <td style="color: #00bfff; font-family: monospace;">${tv.pagina || tv.url}</td>
-                <td><span class="badge-online">Online</span></td>
-              </tr>
-            `;
-          }).join('');
-        });
-
-        // --- 3. CADASTRAR MÍDIA ---
-        mediaForm.addEventListener('submit', (e) => {
-          e.preventDefault();
-
-          const selectedTv = tvAlvoSelect.value;
-          const newMedia = {
-            url: document.getElementById('url').value,
-            tipo: document.getElementById('tipo').value,
-            tempo: document.getElementById('tempo').value,
-            tvAlvo: selectedTv,
-            criadoEm: firebase.database.ServerValue.TIMESTAMP
-          };
-
-          database.ref('playlist').push(newMedia).then(() => {
-            mediaForm.reset();
-            document.getElementById('tempo').value = 10;
-          });
-        });
-
-        // --- 4. LISTAR PLAYLIST ---
-        database.ref('playlist').on('value', (snapshot) => {
-          const data = snapshot.val();
-          playlistTable.innerHTML = '';
-
-          if (!data) {
-            playlistTable.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888;">Nenhuma mídia cadastrada.</td></tr>';
-            return;
-          }
-
-          Object.keys(data).forEach(key => {
-            const item = data[key];
-            const nomeEst = item.tvAlvo === 'todas' 
-              ? 'Todas as TVs (Geral)' 
-              : (tvsCadastradasObj[item.tvAlvo] ? `${tvsCadastradasObj[item.tvAlvo].estabelecimento} (${item.tvAlvo})` : item.tvAlvo);
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td style="color: #ffcc00;"><strong>${nomeEst}</strong></td>
-              <td style="text-transform: capitalize;">${item.tipo}</td>
-              <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.url}</td>
-              <td>${item.tempo}s</td>
-              <td><button class="btn-delete" onclick="removerMidia('${key}')">Excluir</button></td>
-            `;
-            playlistTable.appendChild(tr);
-          });
-        });
+    function excluirEmpresa(id) {
+      if (confirm("Deseja realmente excluir esta empresa?")) {
+        database.ref('empresas/' + id).remove();
       }
     }
 
-    function copiarUrl(url) {
-      navigator.clipboard.writeText(url).then(() => {
-        alert('Link copiado para a área de transferência!');
+    // --- GERENCIAR TVS ---
+    database.ref('tvs_online').on('value', (snapshot) => {
+      listaTvs.innerHTML = '';
+      const tvs = snapshot.val() || {};
+
+      Object.entries(tvs).forEach(([key, tv]) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<div>
+                          <strong>TV ID:</strong> ${tv.id || 'Sem ID'}<br>
+                          <small>Orientação: ${tv.orientacao || '0deg'}</small>
+                        </div>
+                        <button class="btn-danger" onclick="excluirTV('${key}')">Remover</button>`;
+        listaTvs.appendChild(li);
+      });
+    });
+
+    function excluirTV(key) {
+      if (confirm("Deseja remover o registro desta TV?")) {
+        database.ref('tvs_online/' + key).remove();
+      }
+    }
+
+    // --- ADICIONAR MÍDIA ---
+    formMidia.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const empresaId = selectEmpresa.value;
+      const url = document.getElementById('midia-url').value.trim();
+      const tipo = document.getElementById('midia-tipo').value;
+      const tempo = document.getElementById('midia-tempo').value;
+      const tvAlvo = document.getElementById('midia-tv').value.trim();
+
+      const newMediaRef = database.ref('playlist').push();
+      newMediaRef.set({
+        empresaId,
+        url,
+        tipo,
+        tempo,
+        tvAlvo,
+        ordem: Date.now()
+      }).then(() => {
+        document.getElementById('midia-url').value = '';
+      });
+    });
+
+    // --- CARREGAR PLAYLIST E DRAG-AND-DROP ---
+    database.ref('playlist').on('value', (snapshot) => {
+      listaPlaylist.innerHTML = '';
+      const data = snapshot.val() || {};
+
+      // Ordenar mídias pela propriedade 'ordem'
+      const midias = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+      midias.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+
+      midias.forEach((item) => {
+        const nomeEmpresa = empresasCache[item.empresaId]?.nome || 'Anunciante Sem Nome';
+        
+        const li = document.createElement('li');
+        li.className = 'draggable-item';
+        li.draggable = true;
+        li.dataset.id = item.id;
+
+        li.innerHTML = `
+          <div class="item-info">
+            <span class="drag-handle">☰</span>
+            <div>
+              <strong>${nomeEmpresa}</strong> 
+              <span class="badge">${item.tipo.toUpperCase()}</span>
+              <span class="badge">${item.tempo}s</span>
+              <span class="badge">TV: ${item.tvAlvo}</span>
+            </div>
+          </div>
+          <button class="btn-danger" onclick="excluirMidia('${item.id}')">Excluir</button>
+        `;
+
+        addDragEvents(li);
+        listaPlaylist.appendChild(li);
+      });
+    });
+
+    function excluirMidia(id) {
+      if (confirm("Deseja remover esta mídia da playlist?")) {
+        database.ref('playlist/' + id).remove();
+      }
+    }
+
+    // --- LÓGICA DE REORDENAÇÃO (DRAG AND DROP) ---
+    let dragItem = null;
+
+    function addDragEvents(item) {
+      item.addEventListener('dragstart', () => {
+        dragItem = item;
+        setTimeout(() => item.classList.add('dragging'), 0);
+      });
+
+      item.addEventListener('dragend', () => {
+        dragItem = null;
+        item.classList.remove('dragging');
       });
     }
 
-    function removerTvCadastrada(tvId) {
-      if (confirm(`Deseja remover a TV "${tvId}" do cadastro?`)) {
-        database.ref('tvs_cadastradas/' + tvId).remove();
+    listaPlaylist.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const afterElement = getDragAfterElement(listaPlaylist, e.clientY);
+      if (afterElement == null) {
+        listaPlaylist.appendChild(dragItem);
+      } else {
+        listaPlaylist.insertBefore(dragItem, afterElement);
       }
+    });
+
+    function getDragAfterElement(container, y) {
+      const draggableElements = [...container.querySelectorAll('.draggable-item:not(.dragging)')];
+      return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset: offset, element: child };
+        } else {
+          return closest;
+        }
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
-    function removerMidia(id) {
-      if (confirm('Deseja realmente remover esta mídia?')) {
-        database.ref('playlist/' + id).remove();
-      }
+    function salvarOrdemPlaylist() {
+      const items = listaPlaylist.querySelectorAll('.draggable-item');
+      const updates = {};
+
+      items.forEach((item, index) => {
+        const id = item.dataset.id;
+        updates[`playlist/${id}/ordem`] = index;
+      });
+
+      database.ref().update(updates).then(() => {
+        alert("Ordem da playlist atualizada com sucesso!");
+      }).catch((err) => {
+        console.error("Erro ao salvar ordem:", err);
+      });
     }
   </script>
 </body>
