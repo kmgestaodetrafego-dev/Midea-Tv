@@ -110,7 +110,7 @@
     .badge { background: #333; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: #aaa; border: 1px solid #444; }
   </style>
 
-  <!-- Firebase -->
+  <!-- Firebase SDKS -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="config.js"></script>
@@ -136,12 +136,12 @@
     <div class="card">
       <h2>Cadastrar Nova TV</h2>
       <form id="form-tv">
-        <input type="text" id="tv-id" placeholder="Identificador da TV (Ex: sala, recepcao)" required>
-        <input type="text" id="tv-nome" placeholder="Nome / Localização (Ex: TV Entrada Principal)" required>
+        <input type="text" id="tv-id" placeholder="ID Único (Ex: recepcao, sala01)" required>
+        <input type="text" id="tv-nome" placeholder="Nome / Localização (Ex: TV Recepção Entrada)" required>
         <button type="submit">Cadastrar TV</button>
       </form>
 
-      <h2 style="margin-top: 25px;">TVs Cadastradas / Online</h2>
+      <h2 style="margin-top: 25px;">TVs Cadastradas e Links</h2>
       <ul id="lista-tvs"></ul>
     </div>
 
@@ -152,7 +152,7 @@
         <select id="midia-empresa" required>
           <option value="">Selecione a Empresa...</option>
         </select>
-        <input type="url" id="midia-url" placeholder="URL da Mídia (Drive, Dropbox, Direct Link)" required>
+        <input type="url" id="midia-url" placeholder="URL da Mídia (Drive, Direct Link)" required>
         <select id="midia-tipo" required>
           <option value="imagem">Imagem</option>
           <option value="video">Vídeo</option>
@@ -176,6 +176,8 @@
   </div>
 
   <script>
+    const URL_BASE_PLAYER = "https://kmgestaodetrafego-dev.github.io/Midea-Tv/";
+
     const formEmpresa = document.getElementById('form-empresa');
     const formTv = document.getElementById('form-tv');
     const formMidia = document.getElementById('form-midia');
@@ -226,10 +228,10 @@
       }
     }
 
-    // --- GERENCIAR TVS (CADASTRO E LISTAGEM) ---
+    // --- GERENCIAR TVS (CADASTRO, LISTAGEM E LINKS DE ACESSO) ---
     formTv.addEventListener('submit', (e) => {
       e.preventDefault();
-      const idTv = document.getElementById('tv-id').value.trim().toLowerCase();
+      const idTv = document.getElementById('tv-id').value.trim().toLowerCase().replace(/\s+/g, '-');
       const nomeTv = document.getElementById('tv-nome').value.trim();
 
       if (!idTv) return;
@@ -249,12 +251,30 @@
       tvsCadastradasCache = snapshot.val() || {};
 
       Object.entries(tvsCadastradasCache).forEach(([id, tv]) => {
+        const linkHorizontal = `${URL_BASE_PLAYER}?tv=${id}&orientacao=0`;
+        const linkGiro90 = `${URL_BASE_PLAYER}?tv=${id}&orientacao=90`;
+        const linkGiro270 = `${URL_BASE_PLAYER}?tv=${id}&orientacao=270`;
+
         const li = document.createElement('li');
-        li.innerHTML = `<div>
-                          <strong>ID: ${id}</strong><br>
-                          <small style="color:#aaa;">${tv.nome}</small>
-                        </div>
-                        <button class="btn-danger" onclick="excluirTV('${id}')">Excluir</button>`;
+        li.style.flexDirection = 'column';
+        li.style.alignItems = 'flex-start';
+        li.style.gap = '8px';
+
+        li.innerHTML = `
+          <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong>ID: ${id}</strong><br>
+              <small style="color:#aaa;">${tv.nome}</small>
+            </div>
+            <button class="btn-danger" onclick="excluirTV('${id}')">Excluir</button>
+          </div>
+          <div style="width: 100%; background: #1a1a1a; padding: 8px; border-radius: 4px; font-size: 0.8rem; border: 1px solid #333;">
+            <div style="color: #ffcc00; margin-bottom: 4px;"><strong>Links do Player:</strong></div>
+            <div>• <a href="${linkHorizontal}" target="_blank" style="color: #4da6ff; text-decoration: none;">Horizontal (Padrão)</a></div>
+            <div>• <a href="${linkGiro90}" target="_blank" style="color: #4da6ff; text-decoration: none;">Girar 90° (Vertical/Totem)</a></div>
+            <div>• <a href="${linkGiro270}" target="_blank" style="color: #4da6ff; text-decoration: none;">Girar 270° (Invertido)</a></div>
+          </div>
+        `;
         listaTvs.appendChild(li);
 
         const option = document.createElement('option');
