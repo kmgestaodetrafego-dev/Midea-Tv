@@ -46,6 +46,27 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+
+    /* Status de TVs Online */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1c3b2b;
+      color: #2ecc71;
+      border: 1px solid #27ae60;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #2ecc71;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #2ecc71;
+    }
     
     form { display: flex; flex-direction: column; gap: 12px; }
     
@@ -110,7 +131,7 @@
     .badge { background: #333; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: #aaa; border: 1px solid #444; }
   </style>
 
-  <!-- Firebase SDKS -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="config.js"></script>
@@ -118,6 +139,12 @@
 <body>
 
   <h1>Painel de Gerenciamento de Mídia</h1>
+
+  <!-- PAINEL SUPERIOR: MONITORAMENTO DE TVS ONLINE -->
+  <div class="card" style="margin-bottom: 25px;">
+    <h2>TVs Ativas no Momento (Online)</h2>
+    <ul id="lista-tvs-online" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;"></ul>
+  </div>
 
   <div class="grid">
     <!-- CADASTRO DE EMPRESAS -->
@@ -184,6 +211,7 @@
     
     const listaEmpresas = document.getElementById('lista-empresas');
     const listaTvs = document.getElementById('lista-tvs');
+    const listaTvsOnline = document.getElementById('lista-tvs-online');
     const listaPlaylist = document.getElementById('lista-playlist');
     
     const selectEmpresa = document.getElementById('midia-empresa');
@@ -191,6 +219,41 @@
 
     let empresasCache = {};
     let tvsCadastradasCache = {};
+
+    // --- MONITOR DE TVS ONLINE ---
+    database.ref('tvs_online').on('value', (snapshot) => {
+      listaTvsOnline.innerHTML = '';
+      const data = snapshot.val() || {};
+
+      const tvs = Object.entries(data);
+      if (tvs.length === 0) {
+        listaTvsOnline.innerHTML = '<li style="color: #777; font-size: 0.9rem;">Nenhuma TV conectada no momento.</li>';
+        return;
+      }
+
+      tvs.forEach(([key, tv]) => {
+        const li = document.createElement('li');
+        const vistoEm = tv.vistoEm ? new Date(tv.vistoEm).toLocaleTimeString('pt-BR') : 'Ativa agora';
+
+        li.innerHTML = `
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <strong style="color: #fff;">${tv.id || key}</strong>
+              <span class="status-badge"><span class="status-dot"></span> ONLINE</span>
+            </div>
+            <small style="color: #aaa; display: block; margin-top: 4px;">Último sinal: ${vistoEm}</small>
+          </div>
+          <button class="btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="desconectarTV('${key}')">Desconectar</button>
+        `;
+        listaTvsOnline.appendChild(li);
+      });
+    });
+
+    function desconectarTV(key) {
+      if (confirm("Deseja remover esta TV da lista de ativas?")) {
+        database.ref('tvs_online/' + key).remove();
+      }
+    }
 
     // --- GERENCIAR EMPRESAS ---
     formEmpresa.addEventListener('submit', (e) => {
@@ -408,3 +471,4 @@
   </script>
 </body>
 </html>
+
