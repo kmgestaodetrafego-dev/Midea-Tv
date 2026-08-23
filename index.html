@@ -397,7 +397,7 @@
     }
 
     fetchNews();
-    setInterval(fetchNews, 2 * 60 * 1000);
+    setInterval(fetchNews, 30 * 1000); // Atualiza e troca a fonte de notícias a cada 30 segundos
 
     // --- REGISTRO DE MÉTRICAS NO FIREBASE ---
     function registrarMetricaExibicao(item, tempoEmSegundos) {
