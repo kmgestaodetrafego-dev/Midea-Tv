@@ -1,229 +1,4 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Player da TV com Notícias e Clima</title>
-  <style>
-    * { 
-      margin: 0; 
-      padding: 0; 
-      box-sizing: border-box; 
-    }
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #000;
-      font-family: sans-serif;
-      position: relative;
-    }
-
-    /* ENVOLTÓRIO PRINCIPAL PARA PERMITIR ROTAÇÃO */
-    #page-wrapper {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      background-color: #000;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* ROTAÇÃO 90 GRAUS (Modo Retrato / Totem) */
-    .orientacao-90 {
-      transform: rotate(90deg);
-      transform-origin: center center;
-      width: 100vh !important;
-      height: 100vw !important;
-      top: calc(50% - 50vw) !important;
-      left: calc(50% - 50vh) !important;
-    }
-
-    /* ROTAÇÃO 270 GRAUS (Modo Retrato Invertido) */
-    .orientacao-270 {
-      transform: rotate(270deg);
-      transform-origin: center center;
-      width: 100vh !important;
-      height: 100vw !important;
-      top: calc(50% - 50vw) !important;
-      left: calc(50% - 50vh) !important;
-    }
-
-    #display-container {
-      width: 100%;
-      height: calc(100% - 50px); /* Reserva espaço para a barra de notícias/clima */
-      position: relative;
-    }
-
-    /* Duas camadas fixas para as mídias */
-    .layer {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      opacity: 0;
-      transition: opacity 1.2s ease-in-out;
-      z-index: 1;
-      pointer-events: none;
-    }
-    .layer.active {
-      opacity: 1 !important;
-      z-index: 2 !important;
-    }
-    .layer img, .layer video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-    #status-msg {
-      color: #fff;
-      font-size: 1.5rem;
-      text-align: center;
-      padding: 20px;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 10;
-      background: rgba(0,0,0,0.7);
-      border-radius: 8px;
-    }
-
-    /* BOTÃO DE TELA CHEIA COMPACTO E DISCRETO */
-    #fullscreen-btn {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      z-index: 1000;
-      background: rgba(0, 0, 0, 0.3);
-      color: rgba(255, 255, 255, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
-      width: 32px;
-      height: 32px;
-      font-size: 1rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      backdrop-filter: blur(2px);
-    }
-    #fullscreen-btn:hover {
-      background: rgba(229, 9, 20, 0.8);
-      color: #fff;
-      border-color: #e50914;
-      transform: scale(1.1);
-    }
-
-    /* BARRA DE NOTÍCIAS, RELÓGIO E CLIMA (TICKER FOOTER) */
-    #news-bar {
-      width: 100%;
-      height: 50px;
-      position: relative;
-      background-color: #111;
-      border-top: 3px solid #e50914;
-      display: flex;
-      align-items: center;
-      overflow: hidden;
-      z-index: 100;
-    }
-    .news-ticker-wrapper {
-      flex: 1;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-    .news-ticker-text {
-      display: inline-block;
-      white-space: nowrap;
-      color: #fff;
-      font-size: 1.1rem;
-      padding-left: 100%;
-      animation: ticker 45s linear infinite;
-    }
-    .news-item {
-      display: inline-block;
-      margin-right: 50px;
-    }
-    .news-item span {
-      color: #ffcc00;
-      margin-right: 10px;
-    }
-
-    /* WIDGET CLIMA E RELÓGIO FIXO À ESQUERDA */
-    .widget-info {
-      display: flex;
-      align-items: center;
-      height: 100%;
-      background: #1a1a1a;
-      border-right: 2px solid #222;
-      padding: 0 15px;
-      gap: 15px;
-      z-index: 101;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-    }
-    .clima-box {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: #ffcc00;
-      font-size: 0.95rem;
-      font-weight: bold;
-    }
-    .relogio-box {
-      color: #fff;
-      font-size: 1.2rem;
-      font-weight: bold;
-      letter-spacing: 1px;
-    }
-
-    @keyframes ticker {
-      0% { transform: translate3d(0, 0, 0); }
-      100% { transform: translate3d(-100%, 0, 0); }
-    }
-  </style>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="config.js"></script>
-</head>
-<body>
-
-  <!-- Botão de Tela Cheia Pequeno -->
-  <button id="fullscreen-btn" onclick="toggleFullscreen()" title="Alternar Tela Cheia">
-    <span id="fs-icon">⛶</span>
-  </button>
-
-  <div id="page-wrapper">
-    <div id="display-container">
-      <div id="layer-a" class="layer"></div>
-      <div id="layer-b" class="layer"></div>
-      <div id="status-msg">Carregando mídias...</div>
-    </div>
-
-    <!-- Barra de Notícias, Clima e Relógio -->
-    <div id="news-bar">
-      <!-- Bloco de Clima e Relógio em Tempo Real na ESQUERDA -->
-      <div class="widget-info">
-        <div class="relogio-box" id="relogio">00:00</div>
-        <div class="clima-box">
-          <span id="clima-icone">☀️</span>
-          <span id="clima-temp">--°C</span>
-        </div>
-      </div>
-
-      <!-- Ticker de notícias rolando na DIREITA -->
-      <div class="news-ticker-wrapper">
-        <div id="news-ticker" class="news-ticker-text">Carregando últimas notícias de futebol e da Paraíba...</div>
-      </div>
-    </div>
-  </div>
-
-  <script>
+<script>
     let firstMediaLoaded = false;
 
     // --- ROTAÇÃO DE TELA VIA URL ---
@@ -238,19 +13,18 @@
       pageWrapper.classList.add('orientacao-270');
     }
 
-    // --- RELÓGIO EM TEMPO REAL ---
+    // --- RELÓGIO DA BARRA SUPERIOR ---
     function atualizarRelogio() {
       const agora = new Date();
       const horas = String(agora.getHours()).padStart(2, '0');
       const minutos = String(agora.getMinutes()).padStart(2, '0');
-      document.getElementById('relogio').innerText = `${horas}:${minutos}`;
+      document.getElementById('relogio-celular').innerText = `${horas}:${minutos}`;
     }
     setInterval(atualizarRelogio, 1000);
     atualizarRelogio();
 
-    // --- PREVISÃO DO TEMPO (CLIMA) VIA API ---
+    // --- PREVISÃO DO TEMPO NA BARRA SUPERIOR ---
     function carregarClima() {
-      // Coordenadas padrão: João Pessoa - PB (-7.1153, -34.861)
       const lat = -7.1153;
       const lon = -34.861;
       const urlClima = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
@@ -276,50 +50,49 @@
         .catch(err => console.warn("Erro ao buscar clima:", err));
     }
     carregarClima();
-    setInterval(carregarClima, 15 * 60 * 1000); // Atualiza clima a cada 15 min
+    setInterval(carregarClima, 15 * 60 * 1000);
 
-    // --- FUNÇÕES DE TELA CHEIA ---
+    // --- TELA CHEIA E OCULTAR BOTÃO ---
     function openFullscreen() {
       if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
         const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-          elem.requestFullscreen().catch(() => {});
-        } else if (elem.webkitRequestFullscreen) {
-          elem.webkitRequestFullscreen();
-        } else if (elem.msRequestFullscreen) {
-          elem.msRequestFullscreen();
-        }
+        if (elem.requestFullscreen) elem.requestFullscreen().catch(() => {});
+        else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+        else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
       }
     }
 
     function toggleFullscreen() {
-      const fsIcon = document.getElementById('fs-icon');
-
       if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
         openFullscreen();
-        fsIcon.innerText = '🗗';
       } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-          document.msExitFullscreen();
-        }
-        fsIcon.innerText = '⛶';
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        else if (document.msExitFullscreen) document.msExitFullscreen();
       }
     }
 
-    document.addEventListener('fullscreenchange', () => {
-      const fsIcon = document.getElementById('fs-icon');
-      if (!document.fullscreenElement) {
-        fsIcon.innerText = '⛶';
-      } else {
-        fsIcon.innerText = '🗗';
-      }
-    });
+    // MONITORA A ENTRADA E SAÍDA DE TELA CHEIA PARA ESCONDER/EXIBIR O BOTÃO
+    function atualizarVisibilidadeBotaoFullscreen() {
+      const btn = document.getElementById('fullscreen-btn');
+      const isFullscreen = document.fullscreenElement || 
+                           document.webkitFullscreenElement || 
+                           document.mozFullScreenElement || 
+                           document.msFullscreenElement;
 
-    // --- LÓGICA DO PLAYER E NOTÍCIAS ---
+      if (isFullscreen) {
+        btn.style.display = 'none'; // Esconde quando entra em tela cheia
+      } else {
+        btn.style.display = 'flex'; // Exibe se sair do modo tela cheia
+      }
+    }
+
+    document.addEventListener('fullscreenchange', atualizarVisibilidadeBotaoFullscreen);
+    document.addEventListener('webkitfullscreenchange', atualizarVisibilidadeBotaoFullscreen);
+    document.addEventListener('mozfullscreenchange', atualizarVisibilidadeBotaoFullscreen);
+    document.addEventListener('MSFullscreenChange', atualizarVisibilidadeBotaoFullscreen);
+
+    // --- PLAYER & NOTÍCIAS ---
     const layerA = document.getElementById('layer-a');
     const layerB = document.getElementById('layer-b');
     const statusMsg = document.getElementById('status-msg');
@@ -332,7 +105,7 @@
     let inactiveLayer = layerB;
     let isTransitioning = false;
 
-    // --- SISTEMA DE PRESENÇA EM TEMPO REAL E HEARTBEAT ---
+    // --- PRESENÇA NO FIREBASE ---
     if (typeof database !== 'undefined') {
       const sessionKey = 'tv_' + MINHA_TV_ID;
       const tvRef = database.ref('tvs_online/' + sessionKey);
@@ -359,7 +132,7 @@
       setInterval(atualizarSinalVida, 15000);
     }
 
-    // --- CARREGADOR DE FONTES DE NOTÍCIAS ---
+    // --- FONTES DE NOTÍCIAS ---
     const fontesNoticias = [
       { nome: "GE - Futebol", url: "https://ge.globo.com/rss/ge/" },
       { nome: "GE - Paraíba Esporte", url: "https://ge.globo.com/rss/ge/pb/" },
@@ -389,17 +162,15 @@
             newsTicker.innerHTML = htmlNoticias;
           }
         })
-        .catch(err => {
-          console.warn(`Erro ao carregar notícias de ${fonte.nome}:`, err);
-        });
+        .catch(err => console.warn(`Erro ao carregar notícias de ${fonte.nome}:`, err));
 
       indiceFonteAtual = (indiceFonteAtual + 1) % fontesNoticias.length;
     }
 
     fetchNews();
-    setInterval(fetchNews, 30 * 1000); // Atualiza e troca a fonte de notícias a cada 30 segundos
+    setInterval(fetchNews, 30 * 1000);
 
-    // --- REGISTRO DE MÉTRICAS NO FIREBASE ---
+    // --- REGISTRO DE MÉTRICAS ---
     function registrarMetricaExibicao(item, tempoEmSegundos) {
       if (typeof database === 'undefined' || !item || !item.empresaId) return;
 
@@ -408,10 +179,7 @@
 
       metricaRef.transaction((atual) => {
         if (!atual) {
-          return {
-            tempoTotalSegundos: tempoEmSegundos,
-            vezesExibidas: 1
-          };
+          return { tempoTotalSegundos: tempoEmSegundos, vezesExibidas: 1 };
         } else {
           return {
             tempoTotalSegundos: (atual.tempoTotalSegundos || 0) + tempoEmSegundos,
@@ -421,7 +189,7 @@
       });
     }
 
-    // --- LÓGICA DO PLAYER ---
+    // --- ROTAÇÃO DE MÍDIA ---
     function formatUrl(url, tipo) {
       if (!url) return '';
       let clean = url.trim();
@@ -590,5 +358,3 @@
       showMedia();
     }
   </script>
-</body>
-</html>
