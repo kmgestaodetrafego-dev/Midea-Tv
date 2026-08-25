@@ -7,18 +7,23 @@
     const ORIENTACAO = urlParams.get('orientacao') || '0';
 
     const pageWrapper = document.getElementById('page-wrapper');
-    if (ORIENTACAO === '90') {
-      pageWrapper.classList.add('orientacao-90');
-    } else if (ORIENTACAO === '270') {
-      pageWrapper.classList.add('orientacao-270');
+    if (pageWrapper) {
+      if (ORIENTACAO === '90') {
+        pageWrapper.classList.add('orientacao-90');
+      } else if (ORIENTACAO === '270') {
+        pageWrapper.classList.add('orientacao-270');
+      }
     }
 
     // --- RELÓGIO DA BARRA SUPERIOR ---
     function atualizarRelogio() {
-      const agora = new Date();
-      const horas = String(agora.getHours()).padStart(2, '0');
-      const minutos = String(agora.getMinutes()).padStart(2, '0');
-      document.getElementById('relogio-celular').innerText = `${horas}:${minutos}`;
+      const elRelogio = document.getElementById('relogio-celular');
+      if (elRelogio) {
+        const agora = new Date();
+        const horas = String(agora.getHours()).padStart(2, '0');
+        const minutos = String(agora.getMinutes()).padStart(2, '0');
+        elRelogio.innerText = `${horas}:${minutos}`;
+      }
     }
     setInterval(atualizarRelogio, 1000);
     atualizarRelogio();
@@ -43,8 +48,10 @@
             else if (code >= 80 && code <= 82) icone = '🌦️';
             else if (code >= 95) icone = '⛈️';
 
-            document.getElementById('clima-temp').innerText = `${temp}°C`;
-            document.getElementById('clima-icone').innerText = icone;
+            const elTemp = document.getElementById('clima-temp');
+            const elIcone = document.getElementById('clima-icone');
+            if (elTemp) elTemp.innerText = `${temp}°C`;
+            if (elIcone) elIcone.innerText = icone;
           }
         })
         .catch(err => console.warn("Erro ao buscar clima:", err));
@@ -72,18 +79,20 @@
       }
     }
 
-    // MONITORA A ENTRADA E SAÍDA DE TELA CHEIA PARA ESCONDER/EXIBIR O BOTÃO
+    // MONITOR DE VISIBILIDADE DO BOTÃO
     function atualizarVisibilidadeBotaoFullscreen() {
       const btn = document.getElementById('fullscreen-btn');
+      if (!btn) return;
+
       const isFullscreen = document.fullscreenElement || 
                            document.webkitFullscreenElement || 
                            document.mozFullScreenElement || 
                            document.msFullscreenElement;
 
       if (isFullscreen) {
-        btn.style.display = 'none'; // Esconde quando entra em tela cheia
+        btn.style.display = 'none';
       } else {
-        btn.style.display = 'flex'; // Exibe se sair do modo tela cheia
+        btn.style.display = 'flex';
       }
     }
 
@@ -143,6 +152,7 @@
     let indiceFonteAtual = 0;
 
     function fetchNews() {
+      if (!newsTicker) return;
       const fonte = fontesNoticias[indiceFonteAtual];
       const rssUrl = encodeURIComponent(fonte.url);
       const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`;
@@ -229,27 +239,29 @@
         });
 
         if (playlist.length > 0) {
-          if (!activeLayer.children.length && !inactiveLayer.children.length) {
+          if (activeLayer && !activeLayer.children.length && inactiveLayer && !inactiveLayer.children.length) {
             showMedia();
           }
         } else {
           clearTimeout(timer);
-          statusMsg.style.display = 'block';
-          statusMsg.innerText = `Nenhuma mídia agendada para esta TV (${MINHA_TV_ID}).`;
+          if (statusMsg) {
+            statusMsg.style.display = 'block';
+            statusMsg.innerText = `Nenhuma mídia agendada para esta TV (${MINHA_TV_ID}).`;
+          }
         }
       }, (error) => {
         console.error("Erro no Firebase Database:", error);
-        statusMsg.innerText = "Erro ao carregar dados do Firebase.";
+        if (statusMsg) statusMsg.innerText = "Erro ao carregar dados do Firebase.";
       });
     } else {
-      statusMsg.innerText = "Erro: arquivo config.js não encontrado.";
+      if (statusMsg) statusMsg.innerText = "Erro: arquivo config.js não encontrado.";
     }
 
     function showMedia() {
       clearTimeout(timer);
       isTransitioning = false;
 
-      if (playlist.length === 0) return;
+      if (!inactiveLayer || playlist.length === 0) return;
       if (currentIndex >= playlist.length) currentIndex = 0;
 
       const item = playlist[currentIndex];
@@ -319,10 +331,10 @@
     }
 
     function switchLayers(newElement, duration) {
-      if (isTransitioning) return;
+      if (isTransitioning || !activeLayer || !inactiveLayer) return;
       isTransitioning = true;
 
-      statusMsg.style.display = 'none';
+      if (statusMsg) statusMsg.style.display = 'none';
 
       if (!firstMediaLoaded) {
         firstMediaLoaded = true;
@@ -337,13 +349,15 @@
       inactiveLayer = temp;
 
       setTimeout(() => {
-        const oldVideo = inactiveLayer.querySelector('video');
-        if (oldVideo) {
-          oldVideo.pause();
-          oldVideo.removeAttribute('src');
-          oldVideo.load();
+        if (inactiveLayer) {
+          const oldVideo = inactiveLayer.querySelector('video');
+          if (oldVideo) {
+            oldVideo.pause();
+            oldVideo.removeAttribute('src');
+            oldVideo.load();
+          }
+          inactiveLayer.innerHTML = '';
         }
-        inactiveLayer.innerHTML = '';
       }, 1300);
 
       clearTimeout(timer);
