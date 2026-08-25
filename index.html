@@ -230,10 +230,13 @@
       transform: scale(1.1);
     }
 
-    /* SUMIR O BOTÃO QUANDO ESTIVER EM TELA CHEIA */
+    /* OCULTAR BOTÃO EM TELA CHEIA (SEM MEXER NO JS) */
+    :root:fullscreen #fullscreen-btn,
+    :root:-webkit-full-screen #fullscreen-btn,
+    :root:-moz-full-screen #fullscreen-btn,
+    :root:-ms-fullscreen-element #fullscreen-btn,
     :fullscreen #fullscreen-btn,
-    :-webkit-full-screen #fullscreen-btn,
-    :-ms-fullscreen-tile #fullscreen-btn {
+    :-webkit-full-screen #fullscreen-btn {
       display: none !important;
     }
 
