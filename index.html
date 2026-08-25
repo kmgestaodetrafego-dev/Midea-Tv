@@ -1,4 +1,205 @@
-<script>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mídia Indoor TV</title>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      font-family: Arial, sans-serif;
+    }
+
+    #page-wrapper {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Orientação de Tela */
+    .orientacao-90 {
+      transform: rotate(90deg);
+      transform-origin: center center;
+    }
+    .orientacao-270 {
+      transform: rotate(270deg);
+      transform-origin: center center;
+    }
+
+    /* Barra Superior */
+    #top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 50px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      z-index: 10;
+      font-size: 1.2rem;
+    }
+
+    #clima-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Container de Mídia */
+    #media-container {
+      width: 100%;
+      height: calc(100% - 40px);
+      position: relative;
+      flex-grow: 1;
+    }
+
+    .layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .layer.active {
+      opacity: 1;
+    }
+
+    .layer img, .layer video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Barra Inferior (Ticker de Notícias) */
+    #ticker-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 40px;
+      background: #111;
+      color: #fff;
+      overflow: hidden;
+      white-space: nowrap;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+    }
+
+    #news-ticker {
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: ticker 45s linear infinite;
+    }
+
+    .news-item {
+      display: inline-block;
+      margin-right: 50px;
+      font-size: 1.1rem;
+    }
+
+    .news-item span {
+      color: #ff3333;
+      margin-right: 8px;
+    }
+
+    @keyframes ticker {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-100%, 0, 0); }
+    }
+
+    /* Botão Fullscreen */
+    #fullscreen-btn {
+      position: fixed;
+      bottom: 60px;
+      right: 20px;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.8);
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    /* Status / Mensagens */
+    #status-msg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      font-size: 1.5rem;
+      text-align: center;
+      z-index: 5;
+    }
+  </style>
+
+  <!-- Firebase Scripts (Necessários) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  
+  <!-- Configurações do Firebase -->
+  <script src="config.js"></script>
+</head>
+<body>
+
+  <div id="page-wrapper">
+    <!-- Barra Superior -->
+    <div id="top-bar">
+      <div id="relogio-celular">00:00</div>
+      <div id="clima-box">
+        <span id="clima-icone">☀️</span>
+        <span id="clima-temp">--°C</span>
+      </div>
+    </div>
+
+    <!-- Container do Player -->
+    <div id="media-container">
+      <div id="status-msg">Carregando sistema...</div>
+      <div id="layer-a" class="layer"></div>
+      <div id="layer-b" class="layer"></div>
+    </div>
+
+    <!-- Ticker de Notícias -->
+    <div id="ticker-bar">
+      <div id="news-ticker">Carregando notícias...</div>
+    </div>
+
+    <!-- Botão de Tela Cheia -->
+    <button id="fullscreen-btn" onclick="toggleFullscreen()">⛶</button>
+  </div>
+
+  <script>
     let firstMediaLoaded = false;
 
     // --- ROTAÇÃO DE TELA VIA URL ---
@@ -28,7 +229,7 @@
     setInterval(atualizarRelogio, 1000);
     atualizarRelogio();
 
-    // --- PREVISÃO DO TEMPO NA BARRA SUPERIOR ---
+    // --- PREVISÃO DO TEMPO ---
     function carregarClima() {
       const lat = -7.1153;
       const lon = -34.861;
@@ -79,7 +280,6 @@
       }
     }
 
-    // MONITOR DE VISIBILIDADE DO BOTÃO
     function atualizarVisibilidadeBotaoFullscreen() {
       const btn = document.getElementById('fullscreen-btn');
       if (!btn) return;
@@ -172,32 +372,13 @@
             newsTicker.innerHTML = htmlNoticias;
           }
         })
-        .catch(err => console.warn(`Erro ao carregar notícias de ${fonte.nome}:`, err));
+        .catch(err => console.warn(`Erro ao carregar notícias:`, err));
 
       indiceFonteAtual = (indiceFonteAtual + 1) % fontesNoticias.length;
     }
 
     fetchNews();
     setInterval(fetchNews, 30 * 1000);
-
-    // --- REGISTRO DE MÉTRICAS ---
-    function registrarMetricaExibicao(item, tempoEmSegundos) {
-      if (typeof database === 'undefined' || !item || !item.empresaId) return;
-
-      const hoje = new Date().toISOString().split('T')[0];
-      const metricaRef = database.ref(`metricas/${hoje}/${item.empresaId}`);
-
-      metricaRef.transaction((atual) => {
-        if (!atual) {
-          return { tempoTotalSegundos: tempoEmSegundos, vezesExibidas: 1 };
-        } else {
-          return {
-            tempoTotalSegundos: (atual.tempoTotalSegundos || 0) + tempoEmSegundos,
-            vezesExibidas: (atual.vezesExibidas || 0) + 1
-          };
-        }
-      });
-    }
 
     // --- ROTAÇÃO DE MÍDIA ---
     function formatUrl(url, tipo) {
@@ -254,7 +435,7 @@
         if (statusMsg) statusMsg.innerText = "Erro ao carregar dados do Firebase.";
       });
     } else {
-      if (statusMsg) statusMsg.innerText = "Erro: arquivo config.js não encontrado.";
+      if (statusMsg) statusMsg.innerText = "Atenção: 'config.js' não carregado ou sem conexão com Firebase.";
     }
 
     function showMedia() {
@@ -276,10 +457,7 @@
         newElement = document.createElement('img');
         newElement.src = finalUrl;
         
-        newElement.onload = () => {
-          registrarMetricaExibicao(item, tempoSegundos);
-          switchLayers(newElement, duration);
-        };
+        newElement.onload = () => switchLayers(newElement, duration);
         newElement.onerror = () => nextMedia();
         inactiveLayer.appendChild(newElement);
 
@@ -301,18 +479,12 @@
 
           const playPromise = newElement.play();
           if (playPromise !== undefined) {
-            playPromise.then(() => {
-              registrarMetricaExibicao(item, tempoSegundos);
-              switchLayers(newElement, duration);
-            }).catch(() => {
+            playPromise.then(() => switchLayers(newElement, duration))
+            .catch(() => {
               newElement.muted = true;
-              newElement.play().then(() => {
-                registrarMetricaExibicao(item, tempoSegundos);
-                switchLayers(newElement, duration);
-              }).catch(() => nextMedia());
+              newElement.play().then(() => switchLayers(newElement, duration)).catch(() => nextMedia());
             });
           } else {
-            registrarMetricaExibicao(item, tempoSegundos);
             switchLayers(newElement, duration);
           }
         };
@@ -372,3 +544,5 @@
       showMedia();
     }
   </script>
+</body>
+</html>
