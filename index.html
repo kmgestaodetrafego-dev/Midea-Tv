@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Player Jhotta Mídia - Estilo Reels/Instagram</title>
+  <title>Player Jhotta Mídia - Adaptação Sem Cortes</title>
   <style>
     * { 
       margin: 0; 
@@ -82,7 +82,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* BLOCO DE HORA E CLIMA JUNTOS NO TOPO */
     .time-weather-group {
       display: flex;
       align-items: center;
@@ -167,7 +166,7 @@
       font-weight: 400;
     }
 
-    /* CAMADAS DE MÍDIA - PREENCHIMENTO TOTAL */
+    /* CAMADAS DE MÍDIA - ESTRUTURA PARA IMAGEM INTEIRA + FUNDO BLUR */
     .layer {
       width: 100%;
       height: 100%;
@@ -178,15 +177,35 @@
       transition: opacity 1.2s ease-in-out;
       z-index: 1;
       pointer-events: none;
+      overflow: hidden;
+      background-color: #000;
     }
+
     .layer.active {
       opacity: 1 !important;
       z-index: 2 !important;
     }
-    .layer img, .layer video {
+
+    /* Imagem de fundo desfocada (preenche todas as sobras) */
+    .bg-blur {
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      width: calc(100% + 20px);
+      height: calc(100% + 20px);
+      object-fit: cover;
+      filter: blur(25px) brightness(0.6);
+      transform: scale(1.1);
+      z-index: 1;
+    }
+
+    /* Mídia principal no centro (cabendo inteira sem cortar nada) */
+    .media-content {
+      position: relative;
       width: 100%;
       height: 100%;
-      object-fit: cover; /* Preenche toda a tela eliminando bordas pretas */
+      object-fit: contain; /* NENHUM CORTE NA IMAGEM OU VÍDEO */
+      z-index: 2;
     }
 
     #status-msg {
@@ -230,7 +249,6 @@
       transform: scale(1.1);
     }
 
-    /* OCULTAR BOTÃO EM TELA CHEIA */
     :root:fullscreen #fullscreen-btn,
     :root:-webkit-full-screen #fullscreen-btn,
     :root:-moz-full-screen #fullscreen-btn,
@@ -240,7 +258,7 @@
       display: none !important;
     }
 
-    /* RODAPÉ EXCLUSIVO PARA TICKER DE NOTÍCIAS */
+    /* RODAPÉ TICKER DE NOTÍCIAS */
     #news-bar {
       width: 100%;
       height: 45px;
@@ -298,7 +316,6 @@
       <!-- TOPO ESTILO SMARTPHONE -->
       <div class="phone-header">
         <div class="status-bar-top">
-          <!-- HORA E CLIMA LADO A LADO -->
           <div class="time-weather-group">
             <span id="relogio-celular">00:00</span>
             <div class="weather-inline">
@@ -366,7 +383,7 @@
     setInterval(atualizarRelogio, 1000);
     atualizarRelogio();
 
-    // --- PREVISÃO DO TEMPO NA BARRA SUPERIOR ---
+    // --- PREVISÃO DO TEMPO ---
     function carregarClima() {
       const lat = -7.1153;
       const lon = -34.861;
@@ -581,28 +598,47 @@
       const finalUrl = formatUrl(item.url, item.tipo);
 
       inactiveLayer.innerHTML = '';
-      let newElement;
 
       if (item.tipo === 'imagem') {
-        newElement = document.createElement('img');
-        newElement.src = finalUrl;
-        
-        newElement.onload = () => {
+        // Criar imagem desfocada para o fundo
+        const bgImg = document.createElement('img');
+        bgImg.src = finalUrl;
+        bgImg.className = 'bg-blur';
+
+        // Criar imagem principal (centralizada e sem cortes)
+        const mainImg = document.createElement('img');
+        mainImg.src = finalUrl;
+        mainImg.className = 'media-content';
+
+        mainImg.onload = () => {
           registrarMetricaExibicao(item, tempoSegundos);
-          switchLayers(newElement, duration);
+          switchLayers(duration);
         };
-        newElement.onerror = () => nextMedia();
-        inactiveLayer.appendChild(newElement);
+        mainImg.onerror = () => nextMedia();
+
+        inactiveLayer.appendChild(bgImg);
+        inactiveLayer.appendChild(mainImg);
 
       } else {
-        newElement = document.createElement('video');
-        newElement.muted = true;
-        newElement.defaultMuted = true;
-        newElement.setAttribute('muted', '');
-        newElement.setAttribute('playsinline', '');
-        newElement.setAttribute('webkit-playsinline', '');
-        newElement.autoplay = true;
-        newElement.preload = 'auto';
+        // Criar vídeo desfocado para o fundo
+        const bgVid = document.createElement('video');
+        bgVid.src = finalUrl;
+        bgVid.className = 'bg-blur';
+        bgVid.muted = true;
+        bgVid.autoplay = true;
+        bgVid.loop = true;
+
+        // Criar vídeo principal (centralizado e sem cortes)
+        const mainVid = document.createElement('video');
+        mainVid.src = finalUrl;
+        mainVid.className = 'media-content';
+        mainVid.muted = true;
+        mainVid.defaultMuted = true;
+        mainVid.setAttribute('muted', '');
+        mainVid.setAttribute('playsinline', '');
+        mainVid.setAttribute('webkit-playsinline', '');
+        mainVid.autoplay = true;
+        mainVid.preload = 'auto';
 
         let started = false;
 
@@ -610,30 +646,32 @@
           if (started) return;
           started = true;
 
-          const playPromise = newElement.play();
+          bgVid.play().catch(() => {});
+          const playPromise = mainVid.play();
+
           if (playPromise !== undefined) {
             playPromise.then(() => {
               registrarMetricaExibicao(item, tempoSegundos);
-              switchLayers(newElement, duration);
+              switchLayers(duration);
             }).catch(() => {
-              newElement.muted = true;
-              newElement.play().then(() => {
+              mainVid.muted = true;
+              mainVid.play().then(() => {
                 registrarMetricaExibicao(item, tempoSegundos);
-                switchLayers(newElement, duration);
+                switchLayers(duration);
               }).catch(() => nextMedia());
             });
           } else {
             registrarMetricaExibicao(item, tempoSegundos);
-            switchLayers(newElement, duration);
+            switchLayers(duration);
           }
         };
 
-        newElement.onloadeddata = startPlayback;
-        newElement.oncanplay = startPlayback;
-        newElement.onerror = () => nextMedia();
+        mainVid.onloadeddata = startPlayback;
+        mainVid.oncanplay = startPlayback;
+        mainVid.onerror = () => nextMedia();
 
-        newElement.src = finalUrl;
-        inactiveLayer.appendChild(newElement);
+        inactiveLayer.appendChild(bgVid);
+        inactiveLayer.appendChild(mainVid);
 
         setTimeout(() => {
           if (!started) nextMedia();
@@ -641,7 +679,7 @@
       }
     }
 
-    function switchLayers(newElement, duration) {
+    function switchLayers(duration) {
       if (isTransitioning) return;
       isTransitioning = true;
 
@@ -660,12 +698,12 @@
       inactiveLayer = temp;
 
       setTimeout(() => {
-        const oldVideo = inactiveLayer.querySelector('video');
-        if (oldVideo) {
-          oldVideo.pause();
-          oldVideo.removeAttribute('src');
-          oldVideo.load();
-        }
+        const oldVideos = inactiveLayer.querySelectorAll('video');
+        oldVideos.forEach(v => {
+          v.pause();
+          v.removeAttribute('src');
+          v.load();
+        });
         inactiveLayer.innerHTML = '';
       }, 1300);
 
