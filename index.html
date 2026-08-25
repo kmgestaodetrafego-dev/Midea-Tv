@@ -167,7 +167,7 @@
       font-weight: 400;
     }
 
-    /* CAMADAS DE MÍDIA */
+    /* CAMADAS DE MÍDIA - PREENCHIMENTO TOTAL */
     .layer {
       width: 100%;
       height: 100%;
@@ -186,7 +186,7 @@
     .layer img, .layer video {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover; /* Preenche toda a tela eliminando bordas pretas */
     }
 
     #status-msg {
@@ -230,7 +230,7 @@
       transform: scale(1.1);
     }
 
-    /* OCULTAR BOTÃO EM TELA CHEIA (SEM MEXER NO JS) */
+    /* OCULTAR BOTÃO EM TELA CHEIA */
     :root:fullscreen #fullscreen-btn,
     :root:-webkit-full-screen #fullscreen-btn,
     :root:-moz-full-screen #fullscreen-btn,
@@ -333,7 +333,7 @@
       <div id="status-msg">Carregando mídias...</div>
     </div>
 
-    <!-- Barra de Notícias (Ticker Limpo) -->
+    <!-- Barra de Notícias -->
     <div id="news-bar">
       <div class="news-ticker-wrapper">
         <div id="news-ticker" class="news-ticker-text">Carregando últimas notícias de futebol e da Paraíba...</div>
